@@ -7,10 +7,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="아침 브리핑">
-<meta name="app-version" content="3">
+<meta name="app-version" content="4">
 <title>아침 브리핑</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <style>
   /* Layout idea: a quiet morning radio. One deep "studio" card is the only loud thing;
      the rundown below is calm type on white, tabs stick under the thumb's reach,
@@ -138,6 +138,11 @@
   .story.open .more{display:flex}
   .more strong{color:var(--ink);font-weight:600}
   .more a{color:var(--ink);font-weight:600;text-underline-offset:3px}
+  .sk .story{display:flex;flex-direction:column;gap:10px}
+  .sk i{display:block;height:14px;border-radius:7px;background:var(--hair);animation:pulse 1.2s ease-in-out infinite}
+  .sk i:first-child{height:18px;width:85%}
+  .sk i.short{width:40%}
+  @keyframes pulse{50%{opacity:.45}}
   .empty{background:var(--sheet);border-radius:24px;padding:40px 24px;text-align:center;color:var(--muted);line-height:1.75}
 
   .help{margin-top:12px;background:var(--sheet);border-radius:24px;padding:2px 20px}
@@ -192,7 +197,7 @@
 <div class="app">
   <header class="bar">
     <div class="hello">
-      <p id="dateLabel">불러오는 중</p>
+      <p id="dateLabel">최신 브리핑 확인 중</p>
       <h1 id="greet">좋은 아침이에요</h1>
     </div>
     <div class="tools">
@@ -342,11 +347,14 @@
   let lastLoad = 0;
 
   async function getJSON(name){
-    const r = await fetch(DATA + name + "?t=" + Math.floor(Date.now() / 300000), {cache: "no-store"});
+    const ctl = new AbortController(); const tm = setTimeout(() => ctl.abort(), 8000);
+    const r = await fetch(DATA + name + "?t=" + Math.floor(Date.now() / 300000), {cache: "no-store", signal: ctl.signal}).finally(() => clearTimeout(tm));
     if (!r.ok) throw new Error(String(r.status));
     return r.json();
   }
-  async function loadDays(){
+  let loading = null;
+  function loadDays(){ return loading || (loading = loadDaysNow().finally(() => { loading = null; })); }
+  async function loadDaysNow(){
     $("refreshBtn").classList.add("spin");
     try {
       const idx = await getJSON("index.json");
@@ -376,7 +384,8 @@
   // Before reading on a voice/assistant request: fetch the newest 3-hour edition and switch to it
   async function ensureLatest(){
     const before = state.days[0] && keyOf(state.days[0]);
-    if (Date.now() - lastLoad > 60000) { setStatus("최신 뉴스를 확인하고 있어요"); await loadDays(); }
+    if (loading) await loading;
+    else if (Date.now() - lastLoad > 60000) { setStatus("최신 뉴스를 확인하고 있어요"); await loadDays(); }
     const newest = state.days[0];
     if (newest && (!state.current || keyOf(state.current) !== keyOf(newest))) { stopAll(""); state.current = newest; state.filter = "전체"; render(); }
     if (newest && before !== keyOf(newest)) setStatus(`<b>${esc(editionName(newest))}</b> 브리핑으로 업데이트했어요`);
@@ -387,7 +396,7 @@
   function render(){
     $("greet").textContent = greeting();
     const d = state.current, list = $("list"); list.innerHTML = "";
-    if (!d) { $("tabs").innerHTML = ""; list.innerHTML = '<div class="empty">브리핑을 불러오고 있어요.<br>매일 아침 6시 40분쯤 새 소식이 채워져요.</div>'; paint(); return; }
+    if (!d) { $("tabs").innerHTML = ""; list.innerHTML = '<section class="group sk" aria-label="불러오는 중">' + '<div class="story"><i></i><i></i><i class="short"></i></div>'.repeat(4) + '</section>'; paint(); return; }
     $("dateLabel").textContent = editionName(d) + " 브리핑" + (d.generatedAt ? ` · ${fmtTime(d.generatedAt)} 갱신` : "");
     const all = items();
     const tabs = $("tabs"); tabs.innerHTML = "";
@@ -774,15 +783,16 @@
 
   async function init(){
     const cached = cachedDays(); if (cached.length) setDays(cached); else render();
+    loadDays();   // start downloading news right away
     if (NATIVE) {
       state.engine = "native"; $("micBtn").hidden = false; wireListening();
-      try { const r = await NV.getVoices(); state.voices = (r && r.voices) || []; } catch(e) { state.engine = "none"; }
       NV.addListener("launch", ({url}) => runAction(url));
+      // the phone's voice engine may take a few seconds to start; don't hold anything up for it
+      NV.getVoices().then(r => { state.voices = (r && r.voices) || []; buildVoiceList(); }, () => { state.engine = "none"; });
       try { const r = await NV.getLaunch(); if (r && r.url) { pendingAction = r.url; launchedByAction = true; } else if (store.get("brief.autoplay", "0") === "1") pendingAction = "morningbriefing://play"; } catch(e){}
       if (pendingAction && state.current) runAction(pendingAction);
     } else if (window.speechSynthesis) { state.engine = "web"; }
     buildVoiceList();
-    loadDays();
     try { localStorage.removeItem("app.boot"); } catch(e){}
     setTimeout(checkUpdates, 2500);
   }
