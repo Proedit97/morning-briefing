@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="아침 브리핑">
-<meta name="app-version" content="6">
+<meta name="app-version" content="7">
 <title>아침 브리핑</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -278,6 +278,7 @@
       <dt>아이콘 길게 누르기</dt><dd>브리핑 듣기 · 확인된 뉴스만 · 헤드라인만 · 말로 명령하기 바로가기가 나와요</dd>
       <dt>찾기</dt><dd>“한전 소식”처럼 말하면 관련 소식을 찾아 읽어요</dd>
     </dl>
+    <p class="keys" id="verLine"></p>
     <p class="keys"><b style="color:var(--ok)">● 교차 확인</b> 서로 다른 매체 2곳 이상이 보도 · <b style="color:var(--warn)">● 일부 확인</b> 핵심은 확인, 세부는 한 곳만 · <b style="color:var(--one)">● 단일 보도</b> 아직 한 곳만 보도</p>
   </details>
 </div>
@@ -807,7 +808,13 @@
     if (pendingAction && state.current) setTimeout(() => runAction(pendingAction), 300);
   }
 
+  async function showVersion(){
+    let app = "";
+    try { if (NATIVE) { const i = await NV.getAppInfo(); app = ` · 앱 ${i.versionName || ""}`; } } catch(e){}
+    $("verLine").textContent = `화면 버전 ${APP_VER}${app}${window.__swapped ? " (자동 업데이트됨)" : ""}`;
+  }
   async function init(){
+    showVersion();
     const cached = cachedDays(); if (cached.length) setDays(cached); else render();
     loadDays();   // start downloading news right away
     if (NATIVE) {
