@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="아침 브리핑">
-<meta name="app-version" content="14">
+<meta name="app-version" content="15">
 <title>아침 브리핑</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -505,6 +505,7 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
     const d = state.current, list = $("list"); list.innerHTML = "";
     if (!d) { $("tabs").innerHTML = ""; list.innerHTML = '<section class="group sk" aria-label="불러오는 중">' + '<div class="story"><i></i><i></i><i class="short"></i></div>'.repeat(4) + '</section>'; paint(); return; }
     hideIntro();
+    try { localStorage.removeItem("app.boot"); } catch(e){}   // the page started and drew the news: keep this version
     $("dateLabel").textContent = editionName(d) + " 브리핑" + (d.generatedAt ? ` · ${fmtTime(d.generatedAt)} 갱신` : "");
     const all = items();
     const tabs = $("tabs"); tabs.innerHTML = "";
