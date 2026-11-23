@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="아침 브리핑">
-<meta name="app-version" content="9">
+<meta name="app-version" content="10">
 <title>아침 브리핑</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -503,7 +503,7 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
     const more = document.createElement("div"); more.className = "m-more";
     const lines = [];
     if (m.summary) lines.push(m.summary);
-    if ((m.movers || []).length) lines.push("눈에 띈 종목: " + m.movers.map(x => `${x.name} ${x.note}`).join(", "));
+    if ((m.movers || []).length) lines.push("눈에 띈 종목: " + m.movers.map(x => typeof x === "string" ? x : `${x.name} ${x.note}`).join(", "));
     if (m.verify && m.verify.note) lines.push("확인 내용: " + m.verify.note);
     lines.push("시세는 기사 기준이라 실시간과 다를 수 있어요. 투자 판단의 근거로 쓰기 전에 증권사 앱에서 확인해 주세요.");
     lines.forEach(l => { const p = document.createElement("p"); p.style.margin = "0 0 6px"; p.textContent = l; more.appendChild(p); });
