@@ -138,6 +138,33 @@ public class NativeVoicePlugin extends Plugin {
         call.resolve();
     }
 
+    /* ---------------- launch actions (shortcuts, assistants, routines) ---------------- */
+
+    private String launchUrl(Intent intent) {
+        if (intent == null || intent.getData() == null) return null;
+        String url = intent.getDataString();
+        return url != null && url.startsWith("morningbriefing://") ? url : null;
+    }
+
+    /** The morningbriefing:// link the app was opened with, once. */
+    @PluginMethod
+    public void getLaunch(PluginCall call) {
+        JSObject r = new JSObject();
+        if (getActivity() != null) {
+            Intent intent = getActivity().getIntent();
+            String url = launchUrl(intent);
+            if (url != null) { r.put("url", url); intent.setData(null); }
+        }
+        call.resolve(r);
+    }
+
+    @Override
+    protected void handleOnNewIntent(Intent intent) {
+        super.handleOnNewIntent(intent);
+        String url = launchUrl(intent);
+        if (url != null) { JSObject o = new JSObject(); o.put("url", url); notifyListeners("launch", o); intent.setData(null); }
+    }
+
     /* ---------------- speech recognition ---------------- */
 
     @PluginMethod

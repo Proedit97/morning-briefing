@@ -228,6 +228,7 @@
     <summary>목소리</summary>
     <div class="voices" id="voices"></div>
     <button class="pv" id="preview" type="button">선택한 목소리 미리 듣기</button>
+    <label class="vopt" style="border-top:0;margin:-6px 0 14px"><input type="checkbox" id="autoplay"><span>앱을 열면 바로 브리핑 시작</span></label>
   </details>
 
   <details class="help">
@@ -241,6 +242,8 @@
       <dt>확인된 뉴스만</dt><dd>여러 매체가 함께 보도한 소식만 읽어요</dd>
       <dt>헤드라인만</dt><dd>제목만 빠르게 읽어요</dd>
       <dt>확인 묻기</dt><dd>“신세계 폭발물 진짜야?”처럼 물으면 그 소식이 몇 곳에서 확인됐는지 알려줘요</dd>
+      <dt>휴대폰 비서</dt><dd>“Hey Google, 아침 브리핑 열어 줘” 또는 “하이 빅스비, 아침 브리핑 열어 줘”라고 말하면 앱이 열려요. 아래 ‘앱을 열면 바로 브리핑 시작’을 켜 두면 열리자마자 읽어요</dd>
+      <dt>아이콘 길게 누르기</dt><dd>브리핑 듣기 · 확인된 뉴스만 · 헤드라인만 · 말로 명령하기 바로가기가 나와요</dd>
       <dt>찾기</dt><dd>“한전 소식”처럼 말하면 관련 소식을 찾아 읽어요</dd>
     </dl>
     <p class="keys"><b style="color:var(--ok)">● 교차 확인</b> 서로 다른 매체 2곳 이상이 보도 · <b style="color:var(--warn)">● 일부 확인</b> 핵심은 확인, 세부는 한 곳만 · <b style="color:var(--one)">● 단일 보도</b> 아직 한 곳만 보도</p>
@@ -689,6 +692,24 @@
   document.addEventListener("click", (e) => { const a = e.target.closest && e.target.closest("a[href^='http']"); if (a && NATIVE) { e.preventDefault(); window.open(a.href, "_system"); } });
   document.addEventListener("visibilitychange", () => { if (!document.hidden && state.current && state.current.date !== new Date().toISOString().slice(0,10)) loadDays(); });
 
+  /* ---------- launch actions: icon shortcuts, "Hey Google / 빅스비" routines, morningbriefing:// links ---------- */
+  let pendingAction = null;
+  $("autoplay").checked = store.get("brief.autoplay", "0") === "1";
+  $("autoplay").onchange = (e) => store.set("brief.autoplay", e.target.checked ? "1" : "0");
+  function runAction(url){
+    if (!state.current) { pendingAction = url; return; }
+    pendingAction = null;
+    const path = decodeURIComponent(String(url).replace(/^morningbriefing:\/\//, "").replace(/\/+$/, ""));
+    const [cmd, arg] = path.split("/");
+    if (cmd === "play" || cmd === "") return playFrom(0, "all");
+    if (cmd === "verified") return playFrom(-1, "all", {type:"verified"});
+    if (cmd === "headlines") return playFrom(-1, "headlines");
+    if (cmd === "listen") return micClick();
+    if (cmd === "stop") return stopAll("멈췄어요.");
+    if (cmd === "outlet" && arg) { const c = matchCategory(arg); if (c) { state.filter = c.type === "outlet" ? c.name : "전체"; render(); return playFrom(-1, "all", c); } }
+    if (cmd === "say" && arg) return handle(arg);
+  }
+
   function setDays(days){
     state.days = days;
     const sel = $("daySel"); sel.innerHTML = "";
@@ -697,6 +718,7 @@
     const keepDay = state.current && days.find(d => d.date === state.current.date);
     if (!state.playing) { state.current = (keepDay && keepDay !== days[0] && state.current.date !== days[0].date) ? keepDay : (days[0] || null); render(); }
     if (state.current) sel.value = state.current.date;
+    if (pendingAction && state.current) setTimeout(() => runAction(pendingAction), 300);
   }
 
   async function init(){
@@ -704,6 +726,9 @@
     if (NATIVE) {
       state.engine = "native"; $("micBtn").hidden = false; wireListening();
       try { const r = await NV.getVoices(); state.voices = (r && r.voices) || []; } catch(e) { state.engine = "none"; }
+      NV.addListener("launch", ({url}) => runAction(url));
+      try { const r = await NV.getLaunch(); if (r && r.url) pendingAction = r.url; else if (store.get("brief.autoplay", "0") === "1") pendingAction = "morningbriefing://play"; } catch(e){}
+      if (pendingAction && state.current) runAction(pendingAction);
     } else if (window.speechSynthesis) { state.engine = "web"; }
     buildVoiceList();
     loadDays();

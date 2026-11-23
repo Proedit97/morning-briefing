@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Long-press the app icon, or ask the phone's assistant, to jump straight into these. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="play"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/sc_play_short"
+        android:shortcutLongLabel="@string/sc_play_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="morningbriefing://play"
+            android:targetPackage="com.proedit.morningbriefing"
+            android:targetClass="com.proedit.morningbriefing.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="verified"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/sc_verified_short"
+        android:shortcutLongLabel="@string/sc_verified_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="morningbriefing://verified"
+            android:targetPackage="com.proedit.morningbriefing"
+            android:targetClass="com.proedit.morningbriefing.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="headlines"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/sc_headlines_short"
+        android:shortcutLongLabel="@string/sc_headlines_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="morningbriefing://headlines"
+            android:targetPackage="com.proedit.morningbriefing"
+            android:targetClass="com.proedit.morningbriefing.MainActivity" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="listen"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/sc_listen_short"
+        android:shortcutLongLabel="@string/sc_listen_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:data="morningbriefing://listen"
+            android:targetPackage="com.proedit.morningbriefing"
+            android:targetClass="com.proedit.morningbriefing.MainActivity" />
+    </shortcut>
+</shortcuts>
