@@ -1,0 +1,14 @@
+{
+  "name": "morning-briefing",
+  "version": "1.0.0",
+  "private": true,
+  "description": "아침 브리핑 - 음성 뉴스 브리핑 안드로이드 앱",
+  "scripts": { "sync": "cap sync android" },
+  "dependencies": {
+    "@capacitor/android": "8.6.2",
+    "@capacitor/core": "8.6.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.6.2"
+  }
+}

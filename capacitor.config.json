@@ -1,0 +1,6 @@
+{
+  "appId": "com.proedit.morningbriefing",
+  "appName": "아침 브리핑",
+  "webDir": "www",
+  "android": { "backgroundColor": "#0f1830" }
+}
