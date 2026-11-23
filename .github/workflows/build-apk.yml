@@ -3,9 +3,13 @@ name: Build APK
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - "data/**"
-      - "README.md"
+    # Only phone-side changes need a new APK. Screen changes in www/ reach installed apps by themselves.
+    paths:
+      - "android/**"
+      - "package.json"
+      - "package-lock.json"
+      - "capacitor.config.json"
+      - ".github/workflows/**"
   workflow_dispatch:
 
 permissions:

@@ -138,6 +138,18 @@ public class NativeVoicePlugin extends Plugin {
         call.resolve();
     }
 
+    /** Installed app version, used to offer a newer APK. */
+    @PluginMethod
+    public void getAppInfo(PluginCall call) {
+        JSObject r = new JSObject();
+        try {
+            android.content.pm.PackageInfo info = getContext().getPackageManager().getPackageInfo(getContext().getPackageName(), 0);
+            r.put("versionName", info.versionName);
+            r.put("versionCode", android.os.Build.VERSION.SDK_INT >= 28 ? info.getLongVersionCode() : info.versionCode);
+        } catch (Exception e) { r.put("versionCode", 0); }
+        call.resolve(r);
+    }
+
     /* ---------------- launch actions (shortcuts, assistants, routines) ---------------- */
 
     private String launchUrl(Intent intent) {

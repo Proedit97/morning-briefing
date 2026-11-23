@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="아침 브리핑">
+<meta name="app-version" content="3">
 <title>아침 브리핑</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -58,6 +59,9 @@
   .refresh svg{width:17px;height:17px}
   .refresh.spin svg{animation:spin .8s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
+  .update{display:none;align-items:center;justify-content:space-between;gap:12px;margin:0 0 14px;padding:12px 16px;border-radius:18px;background:var(--sheet);box-shadow:0 0 0 1px var(--hair);font-size:14px}
+  .update.show{display:flex}
+  .update button{flex:none;border:0;border-radius:999px;background:var(--onair);color:#fff;font-size:13.5px;font-weight:600;padding:9px 14px}
   .day{position:relative;flex:none}
   .day select{appearance:none;-webkit-appearance:none;border:0;background:var(--sheet);color:var(--ink);font:inherit;font-size:13px;
     font-weight:500;border-radius:999px;padding:9px 30px 9px 14px;box-shadow:0 0 0 1px var(--hair)}
@@ -200,6 +204,8 @@
     </div>
   </header>
 
+  <div class="update" id="updateBar" role="status"><span id="updateText">새 앱 버전이 있어요</span><button id="updateBtn" type="button">설치하기</button></div>
+
   <section class="studio" id="studio" aria-label="지금 재생">
     <div class="s-head">
       <span class="air"><i class="lamp"></i><span id="airLabel">대기 중</span></span>
@@ -278,7 +284,24 @@
 (() => {
   /* 아침 브리핑 — Android app build.
      News comes from the daily files in the GitHub repo; reading and listening use the phone's own engines. */
-  const DATA = "https://raw.githubusercontent.com/Proedit97/morning-briefing/main/data/";
+  const REPO_RAW = "https://raw.githubusercontent.com/Proedit97/morning-briefing/main/";
+  const DATA = REPO_RAW + "data/";
+  const APP_VER = Number((document.querySelector('meta[name="app-version"]') || {}).content || 0);
+
+  /* Screen updates: a newer copy of this page downloaded on an earlier launch replaces the built-in one.
+     If a downloaded copy ever fails to start, the next launch falls back to the built-in page. */
+  try {
+    if (!window.__swapped) {
+      const ver = Number(localStorage.getItem("app.ver") || 0), html = localStorage.getItem("app.html");
+      if (localStorage.getItem("app.boot") === "pending") { localStorage.removeItem("app.html"); localStorage.removeItem("app.ver"); localStorage.removeItem("app.boot"); }
+      else if (html && ver > APP_VER) {
+        window.__swapped = true; localStorage.setItem("app.boot", "pending");
+        const go = () => { document.open(); document.write(html); document.close(); };
+        if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", go); else go();
+        return;
+      }
+    }
+  } catch(e){}
   const $ = (id) => document.getElementById(id);
   const RATES = [0.9, 1, 1.15, 1.3];
   const VLABEL = {confirmed:"교차 확인", partial:"일부 확인", single:"단일 보도"};
@@ -715,11 +738,11 @@
   $("daySel").addEventListener("change", () => { state.pickedOld = $("daySel").selectedIndex > 0; });
   $("daySel").onchange = (e) => { const d = state.days.find(x => keyOf(x) === e.target.value); if (d) { stopAll(""); state.current = d; state.filter = "전체"; render(); setStatus(`${esc(editionName(d))} 브리핑을 불러왔어요.`); } };
   $("preview").onclick = () => { stopAll(""); setStatus("<b>미리 듣기</b> 중이에요"); sayOnce("안녕하세요, 아침 브리핑입니다. 오늘의 주요 소식을 전해 드리겠습니다.").then(() => setStatus("이 목소리로 브리핑을 읽어요."), (e) => handleErr(e)); };
-  document.addEventListener("click", (e) => { const a = e.target.closest && e.target.closest("a[href^='http']"); if (a && NATIVE) { e.preventDefault(); window.open(a.href, "_system"); } });
+  document.addEventListener("click", (e) => { const a = e.target.closest && e.target.closest("a[href^='http']"); if (a && NATIVE) { e.preventDefault(); location.href = a.href; } });
   document.addEventListener("visibilitychange", () => { if (!document.hidden && Date.now() - lastLoad > 10 * 60000) loadDays(); });
 
   /* ---------- launch actions: icon shortcuts, "Hey Google / 빅스비" routines, morningbriefing:// links ---------- */
-  let pendingAction = null;
+  let pendingAction = null, launchedByAction = false;
   $("autoplay").checked = store.get("brief.autoplay", "0") === "1";
   $("autoplay").onchange = (e) => store.set("brief.autoplay", e.target.checked ? "1" : "0");
   async function runAction(url){
@@ -755,11 +778,42 @@
       state.engine = "native"; $("micBtn").hidden = false; wireListening();
       try { const r = await NV.getVoices(); state.voices = (r && r.voices) || []; } catch(e) { state.engine = "none"; }
       NV.addListener("launch", ({url}) => runAction(url));
-      try { const r = await NV.getLaunch(); if (r && r.url) pendingAction = r.url; else if (store.get("brief.autoplay", "0") === "1") pendingAction = "morningbriefing://play"; } catch(e){}
+      try { const r = await NV.getLaunch(); if (r && r.url) { pendingAction = r.url; launchedByAction = true; } else if (store.get("brief.autoplay", "0") === "1") pendingAction = "morningbriefing://play"; } catch(e){}
       if (pendingAction && state.current) runAction(pendingAction);
     } else if (window.speechSynthesis) { state.engine = "web"; }
     buildVoiceList();
     loadDays();
+    try { localStorage.removeItem("app.boot"); } catch(e){}
+    setTimeout(checkUpdates, 2500);
+  }
+
+  let userActed = false;
+  ["pointerdown", "keydown"].forEach(ev => document.addEventListener(ev, () => { userActed = true; }, {capture: true, once: true}));
+  async function checkUpdates(){
+    // 1) new screen/features: download quietly, apply now if nothing is happening, otherwise next launch
+    try {
+      const r = await fetch(REPO_RAW + "www/index.html?t=" + Math.floor(Date.now() / 300000), {cache: "no-store"});
+      const html = await r.text();
+      const m = /<meta name="app-version" content="(\d+)"/.exec(html); const v = m ? Number(m[1]) : 0;
+      if (r.ok && v > APP_VER && html.includes("NativeVoice") && /<\/html>\s*$/.test(html)) {
+        store.set("app.html", html); store.set("app.ver", String(v));
+        if (!state.playing && !userActed && !launchedByAction && !listening) location.reload();
+        else setStatus("새 화면이 준비됐어요. 앱을 다시 열면 적용돼요.");
+      }
+    } catch(e){}
+    // 2) new Android app version (needed only when the phone-side parts change): one tap to install
+    if (!NATIVE) return;
+    try {
+      const info = await NV.getAppInfo();
+      const rel = await (await fetch("https://api.github.com/repos/Proedit97/morning-briefing/releases/latest", {cache: "no-store"})).json();
+      const n = Number(String(rel.tag_name || "").split(".").pop());
+      const asset = (rel.assets || []).find(a => /\.apk$/.test(a.name));
+      if (asset && n > Number(info.versionCode || 0)) {
+        $("updateText").textContent = `새 앱 버전(${rel.tag_name})이 있어요`;
+        $("updateBtn").onclick = () => { location.href = asset.browser_download_url; };
+        $("updateBar").classList.add("show");
+      }
+    } catch(e){}
   }
   init();
 })();
