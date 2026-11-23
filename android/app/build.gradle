@@ -7,7 +7,7 @@ android {
         applicationId "com.proedit.morningbriefing"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // CI passes the run number so each new APK installs over the previous one (bundled screen: www app-version 7)
+        // CI passes the run number so each new APK installs over the previous one (bundled screen: www app-version 8)
         versionCode (System.getenv("VERSION_CODE") ? System.getenv("VERSION_CODE").toInteger() : 1)
         versionName "1.0." + (System.getenv("VERSION_CODE") ?: "0")
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
