@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="아침 브리핑">
-<meta name="app-version" content="12">
+<meta name="app-version" content="13">
 <title>아침 브리핑</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -68,19 +68,19 @@
   .set-top button{border:0;background:none;color:var(--muted);font-size:15px;font-weight:600;padding:8px}
   .set-h{margin:16px 6px 8px;font-size:13px;font-weight:600;color:var(--muted)}
   .set-card{background:var(--sheet);border-radius:20px;padding:2px 16px}
-  .row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-top:1px solid var(--hair);font-size:15px}
-  .row:first-child{border-top:0}
-  .row .k{flex:none}
-  .row .v{flex:1;min-width:0;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:6px 8px;text-align:right;color:var(--muted);font-size:14px;line-height:1.45}
-  .row .v > span{white-space:nowrap}
-  .row .v b{color:var(--ink);font-weight:600}
-  .row .v .new{color:var(--onair);font-weight:600}
-  .row .v .ok{color:var(--ok);font-weight:600}
-  .row button{flex:none;border:0;border-radius:999px;background:var(--onair);color:#fff;font-size:13px;font-weight:600;padding:8px 13px;white-space:nowrap}
-  .set .check{width:100%;height:48px;border:0;border-radius:15px;background:var(--ink);color:var(--bg);font-size:15px;font-weight:600;margin-top:12px}
-  .set .check[disabled]{opacity:.6}
+  .srow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-top:1px solid var(--hair);font-size:15px}
+  .srow:first-child{border-top:0}
+  .srow .k{flex:none}
+  .srow .v{flex:1;min-width:0;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:6px 8px;text-align:right;color:var(--muted);font-size:14px;line-height:1.45}
+  .srow .v > span{white-space:nowrap}
+  .srow .v b{color:var(--ink);font-weight:600}
+  .srow .v .new{color:var(--onair);font-weight:600}
+  .srow .v .ok{color:var(--ok);font-weight:600}
+  .srow button{flex:none;border:0;border-radius:999px;background:var(--onair);color:#fff;font-size:13px;font-weight:600;padding:8px 13px;white-space:nowrap}
+  .set .scheck{width:100%;height:48px;border:0;border-radius:15px;background:var(--ink);color:var(--bg);font-size:15px;font-weight:600;margin-top:12px}
+  .set .scheck[disabled]{opacity:.6}
   .set-note{margin:10px 6px 0;font-size:12.5px;line-height:1.65;color:var(--muted)}
-  .row input{accent-color:var(--onair);width:20px;height:20px;margin:0}
+  .srow input{accent-color:var(--onair);width:20px;height:20px;margin:0}
   .update{display:none;align-items:center;justify-content:space-between;gap:12px;margin:0 0 14px;padding:12px 16px;border-radius:18px;background:var(--sheet);box-shadow:0 0 0 1px var(--hair);font-size:14px}
   .update.show{display:flex}
   .update button{flex:none;border:0;border-radius:999px;background:var(--onair);color:#fff;font-size:13.5px;font-weight:600;padding:9px 14px}
@@ -336,17 +336,17 @@
     <div class="set-top"><h2 id="setTitle">설정</h2><button type="button" id="setClose">닫기</button></div>
     <p class="set-h">업데이트</p>
     <div class="set-card">
-      <div class="row"><span class="k">화면 버전</span><span class="v" id="sScreen"><span>확인 전</span></span></div>
-      <div class="row"><span class="k">앱 설치 버전</span><span class="v" id="sApk"><span>확인 전</span></span></div>
-      <div class="row"><span class="k">마지막 확인</span><span class="v" id="sChecked"><span>아직 안 함</span></span></div>
+      <div class="srow"><span class="k">화면 버전</span><span class="v" id="sScreen"><span>확인 전</span></span></div>
+      <div class="srow"><span class="k">앱 설치 버전</span><span class="v" id="sApk"><span>확인 전</span></span></div>
+      <div class="srow"><span class="k">마지막 확인</span><span class="v" id="sChecked"><span>아직 안 함</span></span></div>
     </div>
-    <button class="check" type="button" id="sCheck">지금 업데이트 확인</button>
+    <button class="scheck" type="button" id="sCheck">지금 업데이트 확인</button>
     <p class="set-note">화면과 기능은 앱을 켤 때 자동으로 받아서 다음 실행 때 바뀌어요. ‘지금 적용’을 누르면 바로 바뀌어요. 앱 설치 버전은 휴대폰 쪽 기능이 바뀔 때만 새로 나오고, 그때는 설치하기를 눌러 직접 설치해야 해요.</p>
     <p class="set-h">브리핑</p>
     <div class="set-card">
-      <div class="row"><span class="k">지금 브리핑</span><span class="v" id="sEdition">-</span></div>
-      <div class="row"><span class="k">다음 브리핑</span><span class="v" id="sNext">-</span></div>
-      <label class="row" for="autoplay"><span class="k">앱을 열면 바로 브리핑 시작</span><input type="checkbox" id="autoplay"></label>
+      <div class="srow"><span class="k">지금 브리핑</span><span class="v" id="sEdition">-</span></div>
+      <div class="srow"><span class="k">다음 브리핑</span><span class="v" id="sNext">-</span></div>
+      <label class="srow" for="autoplay"><span class="k">앱을 열면 바로 브리핑 시작</span><input type="checkbox" id="autoplay"></label>
     </div>
     <p class="set-note">뉴스는 0·3·6·9·12·15·18·21시에 새 판이 나와요.</p>
   </div>
