@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="아침 브리핑">
-<meta name="app-version" content="16">
+<meta name="app-version" content="17">
 <title>아침 브리핑</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -717,6 +717,7 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
     }
   }
   function stopSpeech(){
+    settleWaiter();
     try { if (state.engine === "native") NV.stop(); } catch(e){}
     try { if (state.engine === "web") speechSynthesis.cancel(); } catch(e){}
   }
@@ -745,9 +746,35 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
     if (my !== state.runId) return;
     state.playing = false; state.qi = -1; paint();
     setStatus("브리핑이 끝났어요. 다른 소식이 궁금하면 마이크를 눌러 말해 주세요.");
-    if (full && state.current?.outro) { try { await sayOnce(state.current.outro); } catch(e){} }
+    if (full && state.current?.outro && !state.outroQueued) { try { await sayOnce(state.current.outro); } catch(e){} }
   }
+  /* Newer Android app: hand the whole briefing to the phone at once, so it keeps reading with the screen off.
+     Older app (1.0.6 and before): fall back to feeding a few stories ahead from here. */
+  var bgSupported = null, doneWaiter = null;
+  function settleWaiter(){ const w = doneWaiter; doneWaiter = null; if (w) w.res(); }
   async function runNative(my, intro){
+    state.outroQueued = false;
+    if (bgSupported !== false) {
+      const Q = state.queue, start = state.qi, list = [];
+      if (intro) chunk(intro).forEach((c, k) => list.push({id: `r${my}intro${k}`, text: c, label: "인사말"}));
+      for (let i = start; i < Q.length; i++) chunk(lineFor(Q[i], Q[i-1])).forEach((c, k) => list.push({id: `r${my}s${i}k${k}`, text: c, label: `${Q[i].category} · ${Q[i].title}`}));
+      const full = start === 0 && Q.length === items().length && Q[0] && Q[0].mode === "all";
+      if (full && state.current?.outro) { chunk(state.current.outro).forEach((c, k) => list.push({id: `r${my}outro${k}`, text: c, label: "마무리"})); state.outroQueued = true; }
+      const lastId = list.length ? list[list.length - 1].id : null;
+      if (!lastId) return;
+      const finished = new Promise(res => { settleWaiter(); doneWaiter = {id: lastId, res}; });
+      try {
+        if (intro) setStatus("<b>인사말</b>을 읽고 있어요");
+        await NV.speakQueue({items: list, rate: state.rate, pitch: 1.05, voice: pickVoice() || undefined});
+        bgSupported = true;
+        if (!store.get("brief.notifAsked")) { store.set("brief.notifAsked", "1"); NV.requestNotifications().catch(() => {}); }
+      } catch(e) {
+        const c = String((e && (e.code || e.message)) || "");
+        if (/UNIMPLEMENTED|not implemented/i.test(c)) { bgSupported = false; settleWaiter(); state.outroQueued = false; }
+        else { settleWaiter(); state.outroQueued = false; throw e; }
+      }
+      if (bgSupported) { await finished; return; }
+    }
     const start = state.qi, Q = state.queue, promises = [];
     const enqueueStory = (i) => Promise.all(chunk(lineFor(Q[i], Q[i-1])).map((c, k) => nSay(c, `r${my}s${i}k${k}`)));
     if (intro) { setStatus("<b>인사말</b>을 읽고 있어요"); const p = Promise.all(chunk(intro).map((c, k) => nSay(c, `r${my}intro${k}`))); p.catch(() => {}); await p; if (my !== state.runId) return; }
@@ -891,6 +918,8 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
       if (t) handle(t); else setStatus(reason === "no_speech" ? "말씀을 듣지 못했어요. 다시 눌러 주세요." : "음성 인식이 끝났어요.");
     });
     NV.addListener("ttsStart", onNativeStart);
+    NV.addListener("ttsDone", ({id}) => { if (doneWaiter && id === doneWaiter.id) settleWaiter(); });
+    NV.addListener("remoteStop", () => stopAll("알림에서 멈췄어요."));
   }
 
   /* ---------- wiring ---------- */

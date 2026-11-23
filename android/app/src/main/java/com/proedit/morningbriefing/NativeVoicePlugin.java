@@ -2,6 +2,8 @@ package com.proedit.morningbriefing;
 
 import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -21,6 +23,11 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
+
+import org.json.JSONObject;
+
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import java.util.ArrayList;
 import java.util.Locale;
@@ -45,8 +52,24 @@ public class NativeVoicePlugin extends Plugin {
     private SpeechRecognizer recognizer;
     private final Handler main = new Handler(Looper.getMainLooper());
 
+    /* whole-briefing queue that keeps going with the screen off (see PlaybackService) */
+    private static NativeVoicePlugin instance;
+    private volatile String queueLast = null;
+    private final Map<String, String> queueLabels = new ConcurrentHashMap<>();
+
+    /** The 멈추기 button in the notification. */
+    static void stopFromNotification() {
+        NativeVoicePlugin p = instance;
+        if (p == null) return;
+        p.queueLast = null;
+        if (p.tts != null) p.tts.stop();
+        for (String id : new ArrayList<>(p.pending.keySet())) p.fail(id, "interrupted");
+        p.notifyListeners("remoteStop", new JSObject());
+    }
+
     @Override
     public void load() {
+        instance = this;
         tts = new TextToSpeech(getContext(), status -> {
             if (status == TextToSpeech.SUCCESS) {
                 tts.setLanguage(Locale.KOREAN);
@@ -62,10 +85,14 @@ public class NativeVoicePlugin extends Plugin {
         tts.setOnUtteranceProgressListener(new UtteranceProgressListener() {
             @Override public void onStart(String id) {
                 JSObject o = new JSObject(); o.put("id", id); notifyListeners("ttsStart", o);
+                String label = queueLabels.get(id);
+                if (label != null && queueLast != null) PlaybackService.update(getContext(), label);
             }
             @Override public void onDone(String id) {
                 PluginCall c = pending.remove(id);
                 if (c != null) { c.resolve(); c.release(bridge); }
+                JSObject o = new JSObject(); o.put("id", id); notifyListeners("ttsDone", o, true);
+                if (id != null && id.equals(queueLast)) { queueLast = null; queueLabels.clear(); PlaybackService.stop(getContext()); }
             }
             @Override public void onError(String id) { fail(id, "error"); }
             @Override public void onError(String id, int code) { fail(id, "error"); }
@@ -131,8 +158,64 @@ public class NativeVoicePlugin extends Plugin {
         if (res == TextToSpeech.ERROR) { pending.remove(id); call.setKeepAlive(false); call.reject("읽기에 실패했어요.", "error"); }
     }
 
+    /**
+     * Queues a whole briefing at once: [{id, text, label?}, ...]. Android reads it to the end by itself,
+     * screen on or off, while a foreground service shows a notification with a 멈추기 button.
+     * Emits ttsStart / ttsDone per piece (ttsDone is retained so the screen catches up when it wakes).
+     */
+    @PluginMethod
+    public void speakQueue(PluginCall call) {
+        if (!ttsReady) { call.reject("음성 엔진이 아직 준비되지 않았어요.", "not_ready"); return; }
+        JSArray items = call.getArray("items");
+        if (items == null || items.length() == 0) { call.reject("읽을 내용이 없어요.", "empty"); return; }
+        float rate = call.getFloat("rate", 1.0f);
+        float pitch = call.getFloat("pitch", 1.0f);
+        String voiceName = call.getString("voice", null);
+        if (voiceName != null && tts.getVoices() != null) {
+            for (Voice v : tts.getVoices()) {
+                if (v.getName().equals(voiceName)) { tts.setVoice(v); break; }
+            }
+        } else {
+            tts.setLanguage(Locale.KOREAN);
+        }
+        tts.setSpeechRate(rate);
+        tts.setPitch(pitch);
+        queueLabels.clear();
+        String first = null, last = null;
+        try {
+            for (int i = 0; i < items.length(); i++) {
+                JSONObject o = items.getJSONObject(i);
+                String id = o.optString("id", "q" + i), text = o.optString("text", "");
+                if (text.isEmpty()) continue;
+                String label = o.optString("label", "");
+                if (!label.isEmpty()) queueLabels.put(id, label);
+                int res = tts.speak(text, first == null ? TextToSpeech.QUEUE_FLUSH : TextToSpeech.QUEUE_ADD, new Bundle(), id);
+                if (res == TextToSpeech.ERROR) { call.reject("읽기에 실패했어요.", "error"); return; }
+                if (first == null) first = id;
+                last = id;
+            }
+        } catch (Exception e) { call.reject("읽을 내용을 이해하지 못했어요.", "bad_items"); return; }
+        queueLast = last;
+        String firstLabel = first != null ? queueLabels.get(first) : null;
+        PlaybackService.start(getContext(), firstLabel != null ? firstLabel : "브리핑을 읽고 있어요");
+        JSObject r = new JSObject(); r.put("last", last);
+        call.resolve(r);
+    }
+
+    /** Android 13+: ask once to show the playback notification (playback works either way). */
+    @PluginMethod
+    public void requestNotifications(PluginCall call) {
+        if (Build.VERSION.SDK_INT >= 33 && getActivity() != null
+            && ContextCompat.checkSelfPermission(getContext(), Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(getActivity(), new String[] { Manifest.permission.POST_NOTIFICATIONS }, 7302);
+        }
+        call.resolve();
+    }
+
     @PluginMethod
     public void stop(PluginCall call) {
+        queueLast = null; queueLabels.clear();
+        PlaybackService.stop(getContext());
         if (tts != null) tts.stop();
         for (String id : new ArrayList<>(pending.keySet())) fail(id, "interrupted");
         call.resolve();
@@ -240,6 +323,8 @@ public class NativeVoicePlugin extends Plugin {
 
     @Override
     protected void handleOnDestroy() {
+        PlaybackService.stop(getContext());
+        if (instance == this) instance = null;
         if (tts != null) { tts.stop(); tts.shutdown(); }
         main.post(() -> { if (recognizer != null) recognizer.destroy(); });
     }
