@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="아침 브리핑">
-<meta name="app-version" content="11">
+<meta name="app-version" content="12">
 <title>아침 브리핑</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -59,6 +59,28 @@
   .refresh svg{width:17px;height:17px}
   .refresh.spin svg{animation:spin .8s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
+  /* settings sheet */
+  .set-ov{position:fixed;inset:0;z-index:15;background:rgba(8,12,24,.45);display:none;align-items:flex-end;justify-content:center}
+  .set-ov.show{display:flex}
+  .set{width:100%;max-width:560px;max-height:92vh;overflow:auto;background:var(--bg);border-radius:26px 26px 0 0;padding:8px 16px calc(env(safe-area-inset-bottom) + 20px)}
+  .set-top{display:flex;align-items:center;justify-content:space-between;padding:10px 4px 12px}
+  .set-top h2{margin:0;font-size:20px;font-weight:700;letter-spacing:-.02em}
+  .set-top button{border:0;background:none;color:var(--muted);font-size:15px;font-weight:600;padding:8px}
+  .set-h{margin:16px 6px 8px;font-size:13px;font-weight:600;color:var(--muted)}
+  .set-card{background:var(--sheet);border-radius:20px;padding:2px 16px}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 0;border-top:1px solid var(--hair);font-size:15px}
+  .row:first-child{border-top:0}
+  .row .k{flex:none}
+  .row .v{flex:1;min-width:0;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:6px 8px;text-align:right;color:var(--muted);font-size:14px;line-height:1.45}
+  .row .v > span{white-space:nowrap}
+  .row .v b{color:var(--ink);font-weight:600}
+  .row .v .new{color:var(--onair);font-weight:600}
+  .row .v .ok{color:var(--ok);font-weight:600}
+  .row button{flex:none;border:0;border-radius:999px;background:var(--onair);color:#fff;font-size:13px;font-weight:600;padding:8px 13px;white-space:nowrap}
+  .set .check{width:100%;height:48px;border:0;border-radius:15px;background:var(--ink);color:var(--bg);font-size:15px;font-weight:600;margin-top:12px}
+  .set .check[disabled]{opacity:.6}
+  .set-note{margin:10px 6px 0;font-size:12.5px;line-height:1.65;color:var(--muted)}
+  .row input{accent-color:var(--onair);width:20px;height:20px;margin:0}
   .update{display:none;align-items:center;justify-content:space-between;gap:12px;margin:0 0 14px;padding:12px 16px;border-radius:18px;background:var(--sheet);box-shadow:0 0 0 1px var(--hair);font-size:14px}
   .update.show{display:flex}
   .update button{flex:none;border:0;border-radius:999px;background:var(--onair);color:#fff;font-size:13.5px;font-weight:600;padding:9px 14px}
@@ -246,6 +268,7 @@
     </div>
     <div class="tools">
     <button class="refresh" id="refreshBtn" type="button" aria-label="새로 고침"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
+    <button class="refresh" id="setBtn" type="button" aria-label="설정"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
     <div class="day" id="dayWrap" hidden>
       <label class="sr" for="daySel">날짜 선택</label>
       <select id="daySel"></select>
@@ -285,7 +308,6 @@
     <summary>목소리</summary>
     <div class="voices" id="voices"></div>
     <button class="pv" id="preview" type="button">선택한 목소리 미리 듣기</button>
-    <label class="vopt" style="border-top:0;margin:-6px 0 14px"><input type="checkbox" id="autoplay"><span>앱을 열면 바로 브리핑 시작</span></label>
   </details>
 
   <details class="help">
@@ -300,13 +322,34 @@
       <dt>확인된 뉴스만</dt><dd>여러 매체가 함께 보도한 소식만 읽어요</dd>
       <dt>헤드라인만</dt><dd>제목만 빠르게 읽어요</dd>
       <dt>확인 묻기</dt><dd>“신세계 폭발물 진짜야?”처럼 물으면 그 소식이 몇 곳에서 확인됐는지 알려줘요</dd>
-      <dt>휴대폰 비서</dt><dd>“Hey Google, 아침 브리핑 열어 줘” 또는 “하이 빅스비, 아침 브리핑 열어 줘”라고 말하면 앱이 열려요. 아래 ‘앱을 열면 바로 브리핑 시작’을 켜 두면 열리자마자 읽어요</dd>
+      <dt>휴대폰 비서</dt><dd>“Hey Google, 아침 브리핑 열어 줘” 또는 “하이 빅스비, 아침 브리핑 열어 줘”라고 말하면 앱이 열려요. 설정(⚙)에서 ‘앱을 열면 바로 브리핑 시작’을 켜 두면 열리자마자 읽어요</dd>
       <dt>아이콘 길게 누르기</dt><dd>브리핑 듣기 · 확인된 뉴스만 · 헤드라인만 · 말로 명령하기 바로가기가 나와요</dd>
       <dt>찾기</dt><dd>“한전 소식”처럼 말하면 관련 소식을 찾아 읽어요</dd>
     </dl>
     <p class="keys" id="verLine"></p>
     <p class="keys"><b style="color:var(--ok)">● 교차 확인</b> 서로 다른 매체 2곳 이상이 보도 · <b style="color:var(--warn)">● 일부 확인</b> 핵심은 확인, 세부는 한 곳만 · <b style="color:var(--one)">● 단일 보도</b> 아직 한 곳만 보도</p>
   </details>
+</div>
+
+<div class="set-ov" id="setOv" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+  <div class="set">
+    <div class="set-top"><h2 id="setTitle">설정</h2><button type="button" id="setClose">닫기</button></div>
+    <p class="set-h">업데이트</p>
+    <div class="set-card">
+      <div class="row"><span class="k">화면 버전</span><span class="v" id="sScreen"><span>확인 전</span></span></div>
+      <div class="row"><span class="k">앱 설치 버전</span><span class="v" id="sApk"><span>확인 전</span></span></div>
+      <div class="row"><span class="k">마지막 확인</span><span class="v" id="sChecked"><span>아직 안 함</span></span></div>
+    </div>
+    <button class="check" type="button" id="sCheck">지금 업데이트 확인</button>
+    <p class="set-note">화면과 기능은 앱을 켤 때 자동으로 받아서 다음 실행 때 바뀌어요. ‘지금 적용’을 누르면 바로 바뀌어요. 앱 설치 버전은 휴대폰 쪽 기능이 바뀔 때만 새로 나오고, 그때는 설치하기를 눌러 직접 설치해야 해요.</p>
+    <p class="set-h">브리핑</p>
+    <div class="set-card">
+      <div class="row"><span class="k">지금 브리핑</span><span class="v" id="sEdition">-</span></div>
+      <div class="row"><span class="k">다음 브리핑</span><span class="v" id="sNext">-</span></div>
+      <label class="row" for="autoplay"><span class="k">앱을 열면 바로 브리핑 시작</span><input type="checkbox" id="autoplay"></label>
+    </div>
+    <p class="set-note">뉴스는 0·3·6·9·12·15·18·21시에 새 판이 나와요.</p>
+  </div>
 </div>
 
 <div class="bottom">
@@ -848,7 +891,7 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
     setStatus("새 소식과 앱 업데이트를 확인하고 있어요");
     const before = state.days[0] && keyOf(state.days[0]);
     const ok = await loadDays();
-    await checkUpdates();
+    await checkUpdates(true);
     const pending = Number(store.get("app.ver") || 0);
     if (pending > APP_VER) { if (state.playing) stopAll(""); setStatus("새 화면으로 바꾸고 있어요"); setTimeout(() => location.reload(), 300); return; }
     const newest = state.days[0];
@@ -922,31 +965,88 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
 
   let userActed = false;
   ["pointerdown", "keydown"].forEach(ev => document.addEventListener(ev, () => { userActed = true; }, {capture: true, once: true}));
-  async function checkUpdates(){
+  const upd = { screenLatest: 0, apkCurrent: "", apkCode: 0, apkLatest: "", apkUrl: "", checkedAt: 0, err: "" };
+  async function fetchScreen(manual){
+    if (manual) {
+      try {
+        const r = await fetch("https://api.github.com/repos/Proedit97/morning-briefing/contents/www/index.html?ref=main", {cache: "no-store", headers: {Accept: "application/vnd.github.raw"}});
+        if (r.ok) return r;
+      } catch(e){}
+    }
+    return fetch(REPO_RAW + "www/index.html?t=" + (manual ? Date.now() : Math.floor(Date.now() / 300000)), {cache: "no-store"});
+  }
+  async function checkUpdates(manual){
+    upd.err = "";
     // 1) new screen/features: download quietly, apply now if nothing is happening, otherwise next launch
     try {
-      const r = await fetch(REPO_RAW + "www/index.html?t=" + Math.floor(Date.now() / 300000), {cache: "no-store"});
+      const r = await fetchScreen(manual);
       const html = await r.text();
       const m = /<meta name="app-version" content="(\d+)"/.exec(html); const v = m ? Number(m[1]) : 0;
+      if (r.ok && v) upd.screenLatest = Math.max(upd.screenLatest, v);
       if (r.ok && v > APP_VER && html.includes("NativeVoice") && /<\/html>\s*$/.test(html)) {
         store.set("app.html", html); store.set("app.ver", String(v));
         // applied quietly next time the app opens — no reload in front of the listener
       }
-    } catch(e){}
+    } catch(e){ upd.err = "인터넷 연결을 확인해 주세요"; }
     // 2) new Android app version (needed only when the phone-side parts change): one tap to install
-    if (!NATIVE) return;
+    if (!NATIVE) { upd.checkedAt = Date.now(); return upd; }
     try {
       const info = await NV.getAppInfo();
+      upd.apkCurrent = info.versionName || ""; upd.apkCode = Number(info.versionCode || 0);
       const rel = await (await fetch("https://api.github.com/repos/Proedit97/morning-briefing/releases/latest", {cache: "no-store"})).json();
       const n = Number(String(rel.tag_name || "").split(".").pop());
       const asset = (rel.assets || []).find(a => /\.apk$/.test(a.name));
+      if (rel.tag_name) upd.apkLatest = rel.tag_name;
+      upd.apkUrl = asset && n > upd.apkCode ? asset.browser_download_url : "";
       if (asset && n > Number(info.versionCode || 0)) {
         $("updateText").textContent = `새 앱 버전(${rel.tag_name})이 있어요`;
         $("updateBtn").onclick = () => { location.href = asset.browser_download_url; };
         $("updateBar").classList.add("show");
       }
-    } catch(e){}
+    } catch(e){ if (manual && !upd.err) upd.err = "앱 버전 정보를 받지 못했어요"; }
+    upd.checkedAt = Date.now();
+    paintSettings();
+    return upd;
   }
+
+  /* ---------- settings sheet ---------- */
+  function nextEditionLabel(){
+    const n = new Date(); const h = n.getHours(); const nh = (Math.floor(h / 3) + 1) * 3;
+    const lab = (x) => x === 0 || x === 24 ? "자정" : x < 12 ? `오전 ${x}시` : x === 12 ? "낮 12시" : `오후 ${x - 12}시`;
+    return (nh >= 24 ? "내일 " : "오늘 ") + lab(nh % 24 === 0 ? 0 : nh);
+  }
+  function paintSettings(){
+    if (!$("setOv").classList.contains("show")) return;
+    const pending = Number(store.get("app.ver", "0") || 0);
+    const latest = Math.max(upd.screenLatest, pending);
+    const scr = $("sScreen"); scr.innerHTML = "";
+    if (latest > APP_VER) {
+      scr.innerHTML = `<span><b>${APP_VER}</b> → <span class="new">새 버전 ${latest}</span></span>`;
+      const b = document.createElement("button"); b.type = "button"; b.textContent = "지금 적용";
+      b.onclick = () => { if (Number(store.get("app.ver", "0")) > APP_VER) { stopAll(""); location.reload(); } else { b.disabled = true; b.textContent = "받는 중"; checkUpdates(true).then(() => { if (Number(store.get("app.ver", "0")) > APP_VER) location.reload(); }); } };
+      scr.appendChild(b);
+    } else scr.innerHTML = `<span><b>${APP_VER}</b> · ` + (upd.checkedAt ? '<span class="ok">최신</span>' : "확인 전") + "</span>" + (window.__swapped ? "<span>자동 업데이트로 바뀌었어요</span>" : "");
+    const apk = $("sApk"); apk.innerHTML = "";
+    if (!NATIVE) apk.textContent = "웹에서 보는 중";
+    else if (upd.apkUrl) {
+      apk.innerHTML = `<span><b>${esc(upd.apkCurrent)}</b> → <span class="new">${esc(upd.apkLatest)}</span></span>`;
+      const b = document.createElement("button"); b.type = "button"; b.textContent = "설치하기"; b.onclick = () => { location.href = upd.apkUrl; }; apk.appendChild(b);
+    } else apk.innerHTML = `<span><b>${esc(upd.apkCurrent || "-")}</b>` + (upd.apkLatest ? ' · <span class="ok">최신</span>' : "") + "</span>";
+    $("sChecked").innerHTML = upd.err ? `<span class="new">${esc(upd.err)}</span>` : `<span>${upd.checkedAt ? new Date(upd.checkedAt).toLocaleTimeString("ko-KR", {hour: "numeric", minute: "2-digit"}) : "아직 안 함"}</span>`;
+    const d = state.days[0];
+    $("sEdition").innerHTML = d ? `<span><b>${esc(slotLabel(d) || editionName(d))}</b> 판</span>` + (d.generatedAt ? `<span>${esc(fmtTime(d.generatedAt))} 갱신</span>` : "") : "받는 중";
+    $("sNext").innerHTML = `<span>${esc(nextEditionLabel())}</span>`;
+  }
+  async function manualCheck(){
+    const btn = $("sCheck"); btn.disabled = true; btn.textContent = "확인하는 중…";
+    try { await Promise.all([loadDays(), checkUpdates(true)]); } finally { btn.disabled = false; btn.textContent = "지금 업데이트 확인"; paintSettings(); }
+  }
+  function openSettings(){ $("setOv").classList.add("show"); paintSettings(); manualCheck(); }
+  function closeSettings(){ $("setOv").classList.remove("show"); }
+  $("setBtn").onclick = openSettings;
+  $("setClose").onclick = closeSettings;
+  $("setOv").addEventListener("click", (e) => { if (e.target === $("setOv")) closeSettings(); });
+  $("sCheck").onclick = manualCheck;
   init();
 })();
 </script>
