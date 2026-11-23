@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="아침 브리핑">
-<meta name="app-version" content="15">
+<meta name="app-version" content="16">
 <title>아침 브리핑</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -460,8 +460,11 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
       const idx = await getJSON("index.json");
       const ids = (idx.dates || idx.ids || []).slice(0, 24);
       const cache = cachedDays().filter(d => ids.includes(keyOf(d)));
-      let latest = cache.find(d => keyOf(d) === ids[0]);
-      if (!latest) { latest = await getJSON(ids[0] + ".json"); if (!valid(latest)) throw new Error("bad data"); latest.id = latest.id || ids[0]; }
+      // always re-download the newest edition: it can be corrected or filled in (e.g. market data) after it first appears
+      let latest = null;
+      try { latest = await getJSON(ids[0] + ".json"); if (!valid(latest)) latest = null; else latest.id = latest.id || ids[0]; } catch(e){}
+      if (!latest) latest = cache.find(d => keyOf(d) === ids[0]);
+      if (!latest) throw new Error("bad data");
       const merged = [latest, ...cache.filter(d => keyOf(d) !== ids[0])];
       lastLoad = Date.now();
       setDays(merged.sort((a,b) => ids.indexOf(keyOf(a)) - ids.indexOf(keyOf(b))));
