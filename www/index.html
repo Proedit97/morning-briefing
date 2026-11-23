@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="아침 브리핑">
-<meta name="app-version" content="10">
+<meta name="app-version" content="11">
 <title>아침 브리핑</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -843,7 +843,21 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
   $("prevBtn").onclick = () => step(-1);
   $("stopBtn").onclick = () => stopAll("멈췄어요.");
   $("micBtn").onclick = micClick;
-  $("refreshBtn").onclick = () => loadDays();
+  // Tap ↻: fetch the newest edition AND any new screen version; apply a new screen right away (the person asked for it)
+  $("refreshBtn").onclick = async () => {
+    setStatus("새 소식과 앱 업데이트를 확인하고 있어요");
+    const before = state.days[0] && keyOf(state.days[0]);
+    const ok = await loadDays();
+    await checkUpdates();
+    const pending = Number(store.get("app.ver") || 0);
+    if (pending > APP_VER) { if (state.playing) stopAll(""); setStatus("새 화면으로 바꾸고 있어요"); setTimeout(() => location.reload(), 300); return; }
+    const newest = state.days[0];
+    if (newest && !state.playing && keyOf(newest) !== (state.current && keyOf(state.current))) { state.current = newest; state.filter = "전체"; render(); }
+    if (!ok) return;
+    setStatus(newest && keyOf(newest) !== before
+      ? `<b>${esc(editionName(newest))}</b> 브리핑을 새로 받았어요`
+      : `지금 받은 게 최신이에요 (<b>${esc(newest ? editionName(newest) : "")}</b> 판). 다음 판은 3시간마다 나와요.`);
+  };
   $("speedBtn").onclick = () => { state.rate = RATES[(RATES.indexOf(state.rate) + 1) % RATES.length]; store.set("brief.rate", String(state.rate)); paint(); };
   $("askForm").onsubmit = (e) => { e.preventDefault(); const v = $("askInput").value; $("askInput").value = ""; $("askInput").blur(); handle(v); };
   $("daySel").addEventListener("change", () => { state.pickedOld = $("daySel").selectedIndex > 0; });
