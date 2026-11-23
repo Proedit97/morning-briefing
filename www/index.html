@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="아침 브리핑">
-<meta name="app-version" content="13">
+<meta name="app-version" content="14">
 <title>아침 브리핑</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -180,6 +180,7 @@
   .sk i.short{width:40%}
   @keyframes pulse{50%{opacity:.45}}
   /* market panel — Korean convention: rising red, falling blue */
+  .rundown .market{margin-top:0}
   .market{margin-top:14px;background:var(--sheet);border-radius:24px;padding:16px 16px 12px;box-shadow:0 0 0 1px var(--hair)}
   .market.now{box-shadow:0 0 0 2px var(--onair)}
   .m-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:0 4px 10px}
@@ -496,7 +497,10 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
   function hideIntro(){ const el = $("intro"); if (el) el.classList.add("hide"); }
   setTimeout(hideIntro, 2000);
   try { if (localStorage.getItem("brief.cache") && localStorage.getItem("brief.cache") !== "[]") $("intro").classList.add("hide", "instant"); } catch(e){}
+  let marketBox = null;
+  const mbox = () => marketBox || (marketBox = $("market"));
   function render(){
+    mbox();
     $("greet").textContent = greeting();
     const d = state.current, list = $("list"); list.innerHTML = "";
     if (!d) { $("tabs").innerHTML = ""; list.innerHTML = '<section class="group sk" aria-label="불러오는 중">' + '<div class="story"><i></i><i></i><i class="short"></i></div>'.repeat(4) + '</section>'; paint(); return; }
@@ -504,14 +508,16 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
     $("dateLabel").textContent = editionName(d) + " 브리핑" + (d.generatedAt ? ` · ${fmtTime(d.generatedAt)} 갱신` : "");
     const all = items();
     const tabs = $("tabs"); tabs.innerHTML = "";
-    [["전체", all.length], ...(d.sections || []).map(s => [s.category, (s.items||[]).length])].forEach(([name, n]) => {
+    const hasMarket = !!(d.markets && d.markets.summary);
+    if (state.filter === "증시" && !hasMarket) state.filter = "전체";
+    [["전체", all.length], ...(hasMarket ? [["증시", ""]] : []), ...(d.sections || []).map(s => [s.category, (s.items||[]).length])].forEach(([name, n]) => {
       const b = document.createElement("button"); b.className = "tab"; b.type = "button"; b.setAttribute("aria-pressed", String(state.filter === name));
-      b.append(name); const sm = document.createElement("small"); sm.textContent = n; b.appendChild(sm);
+      b.append(name); if (n !== "") { const sm = document.createElement("small"); sm.textContent = n; b.appendChild(sm); }
       b.onclick = () => { state.filter = name; render(); };
       tabs.appendChild(b);
     });
     (d.sections || []).forEach(s => {
-      if (state.filter !== "전체" && state.filter !== s.category) return;
+      if (state.filter === "증시" || (state.filter !== "전체" && state.filter !== s.category)) return;
       const g = document.createElement("section"); g.className = "group";
       const gh = document.createElement("div"); gh.className = "ghead";
       const mk = document.createElement("span"); mk.className = "mark"; mk.textContent = markFor(s.category); mk.setAttribute("aria-hidden","true");
@@ -523,12 +529,14 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
       list.appendChild(g);
     });
     renderMarket();
+    // the market panel sits at the top of 전체 and alone under the 증시 tab
+    if (hasMarket && (state.filter === "전체" || state.filter === "증시")) list.prepend(mbox()); else mbox().hidden = true;
     paint();
   }
   function renderMarket(){
-    const box = $("market"), d = state.current, m = d && d.markets;
+    const box = mbox(), d = state.current, m = d && d.markets;
     if (!m || !m.summary) { box.hidden = true; box.innerHTML = ""; return; }
-    box.hidden = false; box.innerHTML = "";
+    box.hidden = false; box.innerHTML = ""; if (state.filter === "증시") box.classList.add("open");
     const head = document.createElement("div"); head.className = "m-head";
     const h = document.createElement("h2"); h.textContent = "증시";
     const as = document.createElement("span"); as.textContent = m.asOf || "";
@@ -554,7 +562,7 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
     const act = document.createElement("div"); act.className = "m-actions";
     const play = document.createElement("button"); play.type = "button"; play.className = "primary"; play.textContent = "증시 듣기";
     play.onclick = () => playFrom(-1, "all", {type: "market"});
-    const tog = document.createElement("button"); tog.type = "button"; tog.textContent = "자세히";
+    const tog = document.createElement("button"); tog.type = "button"; tog.textContent = box.classList.contains("open") ? "접기" : "자세히";
     tog.onclick = () => { const o = box.classList.toggle("open"); tog.textContent = o ? "접기" : "자세히"; };
     act.append(play, tog); box.appendChild(act);
   }
@@ -598,7 +606,7 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
     $("count").textContent = state.playing ? `${state.qi + 1} / ${q.length}` : `${q.length}개 소식`;
     $("trackBar").style.width = total ? (done / total * 100) + "%" : "0";
     $("trackL").textContent = mmss(done); $("trackR").textContent = "약 " + mmss(total);
-    $("market").classList.toggle("now", !!(cur && cur.market));
+    mbox().classList.toggle("now", !!(cur && cur.market));
     document.querySelectorAll(".story").forEach(r => {
       const on = !!(cur && cur.idx === Number(r.dataset.idx));
       if (r.classList.contains("now") !== on) { r.classList.toggle("now", on); if (on && !studioVisible) r.scrollIntoView({behavior:"smooth", block:"center"}); }
@@ -825,6 +833,7 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
     if (/(주식|증시|증권|코스피|코스닥|환율|나스닥|다우|주가|시장 ?상황|장 ?마감)/.test(t) && !/(진짜|사실|맞아)/.test(t)) {
       state.pickedOld = false; await ensureLatest();
       if (!(state.current && state.current.markets)) return reply(t, "이번 브리핑에는 증시 정보가 아직 없어요. 다음 업데이트 때 들어가요.");
+      state.filter = "증시"; render();
       return playFrom(-1, "all", {type: "market"});
     }
     const wantsNews = /(뉴스|브리핑|소식).*(알려|들려|틀어|읽어|시작|해 ?줘|줘)|^(시작|읽어 ?줘|들려 ?줘|오늘 뉴스|최신 뉴스)/.test(t);
