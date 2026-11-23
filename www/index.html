@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="아침 브리핑">
-<meta name="app-version" content="5">
+<meta name="app-version" content="6">
 <title>아침 브리핑</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -65,7 +65,8 @@
   /* opening screen: same picture as the Android launch screen, so the hand-off is seamless */
   .intro{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;
     background:radial-gradient(70% 45% at 85% 0%,rgba(255,255,255,.16),transparent 70%),linear-gradient(160deg,#24346a 0%,#0f1830 58%);
-    color:#f4f6fb;transition:opacity .45s ease,visibility .45s;padding-bottom:6vh}
+    color:#f4f6fb;transition:opacity .25s ease,visibility .25s;padding-bottom:6vh}
+  .intro.instant{transition:none}
   .intro.hide{opacity:0;visibility:hidden}
   .intro .imark{display:flex;align-items:center;gap:14px;height:72px}
   .intro .dot{width:16px;height:16px;border-radius:50%;background:#ff4a3d;box-shadow:0 0 22px 6px rgba(255,74,61,.45);margin-right:10px;animation:blink 1.6s ease-in-out infinite}
@@ -414,8 +415,9 @@
 
   /* ---------- render ---------- */
   const introStart = Date.now();
-  function hideIntro(){ const el = $("intro"); if (!el || el.classList.contains("hide")) return; setTimeout(() => el.classList.add("hide"), Math.max(0, 700 - (Date.now() - introStart))); }
-  setTimeout(hideIntro, 5000);
+  function hideIntro(){ const el = $("intro"); if (el) el.classList.add("hide"); }
+  setTimeout(hideIntro, 2000);
+  try { if (localStorage.getItem("brief.cache") && localStorage.getItem("brief.cache") !== "[]") $("intro").classList.add("hide", "instant"); } catch(e){}
   function render(){
     $("greet").textContent = greeting();
     const d = state.current, list = $("list"); list.innerHTML = "";
@@ -831,8 +833,7 @@
       const m = /<meta name="app-version" content="(\d+)"/.exec(html); const v = m ? Number(m[1]) : 0;
       if (r.ok && v > APP_VER && html.includes("NativeVoice") && /<\/html>\s*$/.test(html)) {
         store.set("app.html", html); store.set("app.ver", String(v));
-        if (!state.playing && !userActed && !launchedByAction && !listening) location.reload();
-        else setStatus("새 화면이 준비됐어요. 앱을 다시 열면 적용돼요.");
+        // applied quietly next time the app opens — no reload in front of the listener
       }
     } catch(e){}
     // 2) new Android app version (needed only when the phone-side parts change): one tap to install
