@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="아침 브리핑">
-<meta name="app-version" content="20">
+<meta name="app-version" content="21">
 <title>아침 브리핑</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -451,6 +451,21 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
     (d.sections || []).forEach(s => (s.items || []).forEach(it => out.push({...it, category: s.category})));
     return out.map((x, idx) => ({...x, idx}));
   }
+  const OUTLETS = ["MBC","SBS","KBS","JTBC","YTN","MBN","연합뉴스","포털 많이 본 뉴스","외신","스포츠"];
+  const akey = (it) => { const u = (it.url || "").trim(); return (!u || /etoland\.co\.kr|\/rank\//.test(u)) ? "t:" + (it.title || "").replace(/\s+/g, "") : "u:" + u; };
+  // outlets in this edition, plus any outlet that has older articles — in the usual order
+  function outletList(d){
+    const have = new Set((d.sections || []).map(s => s.category));
+    ((arc && arc.articles) || []).forEach(a => { if (!a.market) have.add(a.category); });
+    return [...OUTLETS.filter(c => have.has(c)), ...[...have].filter(c => !OUTLETS.includes(c))];
+  }
+  // older articles of one outlet, newest first, without the ones already in this edition
+  function pastFor(cat, all){
+    const now = new Set(all.filter(x => x.category === cat).map(akey)), seen = new Set();
+    const pool = ((arc && arc.articles && arc.articles.length) ? arc.articles : arcFromDays());
+    return pool.filter(a => a.category === cat && !a.market && !now.has(akey(a)) && !seen.has(akey(a)) && seen.add(akey(a)))
+               .sort((a, b) => String(b.last || b.date).localeCompare(String(a.last || a.date)));
+  }
   const WD = ["일","월","화","수","목","금","토"];
   function fmtDate(s){ const [y,m,d] = s.split("-").map(Number); return `${m}월 ${d}일 ${WD[new Date(y,m-1,d).getDay()]}요일`; }
   function fmtTime(iso){ try { return new Date(iso).toLocaleTimeString("ko-KR",{hour:"numeric",minute:"2-digit"}); } catch(e){ return ""; } }
@@ -538,7 +553,9 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
     const tabs = $("tabs"); tabs.innerHTML = "";
     const hasMarket = !!(d.markets && d.markets.summary);
     if (state.filter === "증시" && !hasMarket) state.filter = "전체";
-    [["전체", all.length], ...(hasMarket ? [["증시", ""]] : []), ...(d.sections || []).map(s => [s.category, (s.items||[]).length]), [ARC_TAB, ""]].forEach(([name, n]) => {
+    const outletTabs = outletList(d).map(c => [c, all.filter(x => x.category === c).length + pastFor(c, all).length]);
+    if (![ "전체", "증시", ARC_TAB ].includes(state.filter) && !outletTabs.some(([c]) => c === state.filter)) state.filter = "전체";
+    [["전체", all.length], ...(hasMarket ? [["증시", ""]] : []), ...outletTabs, [ARC_TAB, ""]].forEach(([name, n]) => {
       const b = document.createElement("button"); b.className = "tab"; b.type = "button"; b.setAttribute("aria-pressed", String(state.filter === name));
       b.append(name); if (n !== "") { const sm = document.createElement("small"); sm.textContent = n; b.appendChild(sm); }
       b.onclick = () => { state.filter = name; render(); };
@@ -556,6 +573,18 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
       its.forEach(it => g.appendChild(storyEl(it)));
       list.appendChild(g);
     });
+    if (outletList(d).includes(state.filter)) {
+      const past = pastFor(state.filter, all);
+      if (!all.some(x => x.category === state.filter)) { const e = document.createElement("p"); e.className = "arc-day"; e.textContent = `이번 판에는 ${state.filter} 소식이 없어요`; list.appendChild(e); }
+      if (past.length) {
+        const h = document.createElement("p"); h.className = "arc-day past-head"; h.textContent = `지난 ${state.filter} 기사 ${past.length}건`; list.appendChild(h);
+        let day = "", g = null;
+        past.slice(0, 200).forEach(it => {
+          if (it.date !== day) { day = it.date; const dh = document.createElement("p"); dh.className = "arc-day"; dh.textContent = fmtDate(day); list.appendChild(dh); g = document.createElement("section"); g.className = "group"; list.appendChild(g); }
+          g.appendChild(arcEl(it));
+        });
+      } else if (arc && arc.busy) { const e = document.createElement("p"); e.className = "arc-day"; e.textContent = "지난 기사를 불러오고 있어요"; list.appendChild(e); }
+    }
     renderMarket();
     // the market panel sits at the top of 전체 and alone under the 증시 tab
     if (hasMarket && (state.filter === "전체" || state.filter === "증시")) list.prepend(mbox()); else mbox().hidden = true;
@@ -1035,7 +1064,7 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
   async function init(){
     showVersion();
     const cached = cachedDays(); if (cached.length) setDays(cached); else render();
-    loadDays();   // start downloading news right away
+    loadDays().then(() => arcLoadMore());   // news first, then older articles for the outlet tabs
     if (NATIVE) {
       state.engine = "native"; $("micBtn").hidden = false; wireListening();
       NV.addListener("launch", ({url}) => runAction(url));
@@ -1139,7 +1168,7 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
   var arcPanel = null;
   const arcEl0 = () => arcPanel || (arcPanel = $("arcPanel"));
   const ap = (id) => arcEl0().querySelector("#" + id);
-  const arc = { months: [], loaded: 0, articles: [], chip: "전체", q: "", total: 0, busy: false, shown: [] };
+  var arc = { months: [], loaded: 0, articles: [], chip: "전체", q: "", total: 0, busy: false, shown: [] };
   const ARC_CHIPS = ["전체", "스포츠", "증시", "경제", "정치", "사회", "국제", "IT"];
   function arcFromDays(){   // fallback before the archive exists: what this phone has loaded
     const out = [], seen = new Set();
@@ -1161,7 +1190,7 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
         arc.articles = arc.articles.concat(m.articles || []); arc.loaded++;
       }
     } catch(e) { ap("arcCount").textContent = "기사 모음을 받지 못했어요. 인터넷 연결을 확인해 주세요."; }
-    finally { arc.busy = false; arcRender(); }
+    finally { arc.busy = false; arcRender(); if (!state.playing && state.current && state.filter !== ARC_TAB) render(); }
   }
   function arcMatch(x){
     const c = arc.chip;
