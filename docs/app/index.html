@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="app-version" content="22">
+<meta name="app-version" content="23">
 <title>아침 브리핑</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -196,11 +196,26 @@
   @keyframes pulse{50%{opacity:.45}}
   /* market panel — Korean convention: rising red, falling blue */
   .rundown .market{margin-top:0}
+  /* live exchange rates */
+  .fx{background:var(--sheet);border-radius:24px;padding:14px 16px 12px;box-shadow:0 0 0 1px var(--hair);margin-bottom:12px}
+  .fx-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+  .fx-head h2{margin:0;font-size:16px;font-weight:700;letter-spacing:-.02em;display:flex;align-items:center;gap:7px}
+  .fx-head h2 i{width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block}
+  .fx-head h2 i.stale{background:var(--muted)}
+  .fx-head button{border:0;background:none;color:var(--muted);font-size:13px;font-weight:600;padding:6px 2px}
+  .fx-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .fx-c{border-radius:16px;background:var(--bg);padding:10px 10px 9px;min-width:0}
+  .fx-c .n{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fx-c .v{font-size:17px;font-weight:700;letter-spacing:-.02em;margin-top:3px;white-space:nowrap}
+  .fx-c .d{font-size:12px;font-weight:600;margin-top:2px;white-space:nowrap}
+  .fx-c .d.up{color:#e5484d} .fx-c .d.down{color:#3b6fe0} .fx-c .d.flat{color:var(--muted)}
+  .fx-foot{margin-top:9px;font-size:11.5px;line-height:1.5;color:var(--muted)}
+  .fx-foot a{color:inherit}
   .market{margin-top:14px;background:var(--sheet);border-radius:24px;padding:16px 16px 12px;box-shadow:0 0 0 1px var(--hair)}
   .market.now{box-shadow:0 0 0 2px var(--onair)}
   .m-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:0 4px 10px}
-  .m-head h2{margin:0;font-size:15.5px;font-weight:600}
-  .m-head span{font-size:12px;color:var(--muted)}
+  .m-head h2{margin:0;font-size:15.5px;font-weight:600;flex:none}
+  .m-head span{font-size:12px;color:var(--muted);text-align:right;line-height:1.45}
   .m-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
   .tick{background:var(--bg);border-radius:14px;padding:10px 10px 9px;min-width:0}
   .tick b{display:block;font-size:12px;font-weight:500;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -314,6 +329,7 @@
     <div class="status" id="status" aria-live="polite">준비 중</div>
   </section>
 
+  <section class="fx" id="fx" hidden aria-label="실시간 환율"></section>
   <section class="market" id="market" hidden aria-label="증시"></section>
 
   <div class="tabs-wrap"><nav class="tabs" id="tabs" aria-label="언론사"></nav></div>
@@ -336,6 +352,7 @@
       <dt>주식 알려줘</dt><dd>코스피·코스닥·환율·미국 증시와 크게 움직인 종목을 읽어요 (“코스피 어때?”, “환율 알려줘”도 돼요)</dd>
       <dt>스포츠 알려줘</dt><dd>스포츠 소식만 읽어요 (“야구 소식”, “축구 뉴스”도 돼요)</dd>
       <dt>기사 모음</dt><dd>지금까지 나온 기사를 모두 모아 둬요. 맨 끝 ‘지난 기사’ 탭에서 검색하고 골라 들을 수 있어요</dd>
+      <dt>환율 알려줘</dt><dd>지금 달러·엔화·뉴질랜드 달러 환율을 읽어요</dd>
       <dt>경제 뉴스</dt><dd>언론사와 상관없이 그 분야만 모아 읽어요</dd>
       <dt>확인된 뉴스만</dt><dd>여러 매체가 함께 보도한 소식만 읽어요</dd>
       <dt>헤드라인만</dt><dd>제목만 빠르게 읽어요</dd>
@@ -469,6 +486,108 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
     return pool.filter(a => a.category === cat && !a.market && !now.has(akey(a)) && !seen.has(akey(a)) && seen.add(akey(a)))
                .sort((a, b) => String(b.last || b.date).localeCompare(String(a.last || a.date)));
   }
+  /* ---------- live exchange rates (USD, JPY per 100, NZD in won) — fetched by the app itself, no Claude usage ---------- */
+  var fxEl = null;
+  const fxbox = () => fxEl || (fxEl = $("fx"));
+  const FX_CUR = [["USD", "미국 달러", 1], ["JPY", "엔화 100엔", 100], ["NZD", "뉴질랜드 달러", 1]];
+  const fx = { rows: null, source: "", time: "", live: false, at: 0, busy: null, err: "" };
+  async function httpJSON(url){
+    if (NATIVE && CapCore && CapCore.CapacitorHttp) {   // the Android app is not limited by browser cross-site rules
+      let r = null;
+      try { r = await CapCore.CapacitorHttp.get({url, headers: {"Accept": "application/json", "User-Agent": "Mozilla/5.0"}, connectTimeout: 6000, readTimeout: 6000}); } catch(e) { r = null; }
+      if (r) {
+        if (r.status < 200 || r.status >= 300) throw new Error("HTTP " + r.status);
+        return typeof r.data === "string" ? JSON.parse(r.data) : r.data;
+      }
+    }
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 6000);
+    try { const r = await fetch(url, {cache: "no-store", signal: ctl.signal}); if (!r.ok) throw new Error("HTTP " + r.status); return await r.json(); }
+    finally { clearTimeout(t); }
+  }
+  const hhmm = (d) => d.toLocaleTimeString("ko-KR", {hour: "numeric", minute: "2-digit"});
+  // ① 하나은행 고시 환율 (updates through the day)
+  async function fxHana(){
+    const arr = await httpJSON("https://quotation-api-cdn.dunamu.com/v1/forex/recent?codes=FRX.KRWUSD,FRX.KRWJPY,FRX.KRWNZD");
+    if (!Array.isArray(arr) || !arr.length) throw new Error("empty");
+    const rows = FX_CUR.map(([c, name]) => {
+      const x = arr.find(a => a.currencyCode === c || a.code === "FRX.KRW" + c); if (!x || !x.basePrice) return null;
+      const ch = Number(x.signedChangePrice != null ? x.signedChangePrice : (x.change === "FALL" ? -1 : 1) * (x.changePrice || 0));
+      return {c, name, value: Number(x.basePrice), change: ch, rate: x.signedChangeRate != null ? Number(x.signedChangeRate) * 100 : null};
+    }).filter(Boolean);
+    if (!rows.length) throw new Error("no rows");
+    const x0 = arr[0]; const tm = x0.date && x0.time ? `${Number(x0.date.slice(5,7))}월 ${Number(x0.date.slice(8,10))}일 ${x0.time.slice(0,5)}` : hhmm(new Date());
+    return {rows, source: (x0.provider || "하나은행") + " 고시 환율", time: tm + " 기준", live: true};
+  }
+  // ② 국제 외환시장 시세 (Android app only: this source blocks web pages)
+  async function fxYahoo(){
+    if (!NATIVE) throw new Error("web");
+    const sym = {USD: "KRW=X", JPY: "JPYKRW=X", NZD: "NZDKRW=X"}; let last = 0;
+    const rows = (await Promise.all(FX_CUR.map(async ([c, name, unit]) => {
+      try {
+        const j = await httpJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${sym[c]}?range=1d&interval=5m`);
+        const m = j.chart.result[0].meta; const v = m.regularMarketPrice * unit, prev = (m.chartPreviousClose || m.previousClose) * unit;
+        last = Math.max(last, m.regularMarketTime || 0);
+        return {c, name, value: v, change: prev ? v - prev : null, rate: prev ? (v - prev) / prev * 100 : null};
+      } catch(e) { return null; }
+    }))).filter(Boolean);
+    if (!rows.length) throw new Error("no rows");
+    return {rows, source: "국제 외환시장 시세", time: (last ? hhmm(new Date(last * 1000)) : hhmm(new Date())) + " 기준", live: true};
+  }
+  // ③ 하루 한 번 갱신되는 무료 환율 (마지막 대비책)
+  async function fxDaily(){
+    const j = await httpJSON("https://open.er-api.com/v6/latest/USD");
+    const r = j.rates; if (!r || !r.KRW) throw new Error("no rates");
+    const rows = FX_CUR.map(([c, name, unit]) => ({c, name, value: c === "USD" ? r.KRW : r.KRW / r[c] * unit, change: null, rate: null}));
+    const d = new Date((j.time_last_update_unix || 0) * 1000);
+    return {rows, source: "ExchangeRate-API (하루 1번 갱신)", time: `${d.getMonth() + 1}월 ${d.getDate()}일 ${hhmm(d)} 기준`, live: false, attr: "https://www.exchangerate-api.com"};
+  }
+  function fxRefresh(force){
+    if (fx.busy) return fx.busy;
+    if (!force && fx.rows && Date.now() - fx.at < 60000) return Promise.resolve(fx);
+    fx.busy = (async () => {
+      for (const src of [fxHana, fxYahoo, fxDaily]) {
+        try { Object.assign(fx, {attr: ""}, await src(), {at: Date.now(), err: ""}); break; } catch(e) { fx.err = "환율을 받지 못했어요. 인터넷 연결을 확인해 주세요."; }
+      }
+      fx.busy = null; fxPaint(); return fx;
+    })();
+    return fx.busy;
+  }
+  const won = (v) => v >= 100 ? v.toLocaleString("ko-KR", {minimumFractionDigits: 1, maximumFractionDigits: 1}) : v.toLocaleString("ko-KR", {maximumFractionDigits: 2});
+  function fxPaint(){
+    const box = fxbox(); box.hidden = false; box.innerHTML = "";
+    const head = document.createElement("div"); head.className = "fx-head";
+    const h = document.createElement("h2"); const dot = document.createElement("i"); if (!fx.live) dot.className = "stale"; h.append(dot, fx.live ? "실시간 환율" : "환율");
+    const b = document.createElement("button"); b.type = "button"; b.textContent = fx.busy ? "받는 중…" : "새로 고침"; b.onclick = () => { b.textContent = "받는 중…"; fxRefresh(true); };
+    head.append(h, b); box.appendChild(head);
+    if (!fx.rows) { const p = document.createElement("div"); p.className = "fx-foot"; p.textContent = fx.err || "환율을 받고 있어요"; box.appendChild(p); return; }
+    const g = document.createElement("div"); g.className = "fx-grid";
+    fx.rows.forEach(r => {
+      const c = document.createElement("div"); c.className = "fx-c";
+      const n = document.createElement("div"); n.className = "n"; n.textContent = r.name;
+      const v = document.createElement("div"); v.className = "v"; v.textContent = won(r.value) + "원";
+      c.append(n, v);
+      if (r.change != null && isFinite(r.change)) {
+        const dir = Math.abs(r.change) < 0.005 ? "flat" : r.change > 0 ? "up" : "down";
+        const d = document.createElement("div"); d.className = "d " + dir;
+        d.textContent = (dir === "up" ? "▲ " : dir === "down" ? "▼ " : "– ") + Math.abs(r.change).toFixed(r.value >= 100 ? 1 : 2) + (r.rate != null && isFinite(r.rate) ? ` (${Math.abs(r.rate).toFixed(2)}%)` : "");
+        c.appendChild(d);
+      }
+      g.appendChild(c);
+    });
+    box.appendChild(g);
+    const f = document.createElement("div"); f.className = "fx-foot";
+    f.append(`${fx.source} · ${fx.time}`);
+    if (fx.attr) { f.append(" · "); const a = document.createElement("a"); a.href = fx.attr; a.target = "_blank"; a.rel = "noopener"; a.textContent = "Rates By Exchange Rate API"; f.appendChild(a); }
+    if (!fx.live) f.append(" · 실시간 시세를 받지 못해 하루 1번 갱신되는 값을 보여 드려요");
+    box.appendChild(f);
+  }
+  function fxSpeech(){
+    if (!fx.rows) return "지금은 환율 정보를 받지 못했어요. 인터넷 연결을 확인해 주세요.";
+    const say = (r) => { const v = Math.round(r.value * 10) / 10; const name = r.c === "USD" ? "원 달러 환율은" : r.c === "JPY" ? "엔화는 100엔에" : "뉴질랜드 달러는"; return `${name} ${v}원`; };
+    return `${fx.time.replace(" 기준", "")} ${fx.source} 기준으로, ` + fx.rows.map(say).join(", ") + "입니다." + (fx.live ? "" : " 하루 한 번 갱신되는 값이라 실제 시세와 다를 수 있어요.");
+  }
+  // refresh every minute while the screen shows it
+  setInterval(() => { if (!document.hidden && fxEl && fxEl.isConnected) fxRefresh(false); }, 60000);
   const WD = ["일","월","화","수","목","금","토"];
   function fmtDate(s){ const [y,m,d] = s.split("-").map(Number); return `${m}월 ${d}일 ${WD[new Date(y,m-1,d).getDay()]}요일`; }
   function fmtTime(iso){ try { return new Date(iso).toLocaleTimeString("ko-KR",{hour:"numeric",minute:"2-digit"}); } catch(e){ return ""; } }
@@ -555,10 +674,9 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
     const all = items();
     const tabs = $("tabs"); tabs.innerHTML = "";
     const hasMarket = !!(d.markets && d.markets.summary);
-    if (state.filter === "증시" && !hasMarket) state.filter = "전체";
     const outletTabs = outletList(d).map(c => [c, all.filter(x => x.category === c).length + pastFor(c, all).length]);
     if (![ "전체", "증시", ARC_TAB ].includes(state.filter) && !outletTabs.some(([c]) => c === state.filter)) state.filter = "전체";
-    [["전체", all.length], ...(hasMarket ? [["증시", ""]] : []), ...outletTabs, [ARC_TAB, ""]].forEach(([name, n]) => {
+    [["전체", all.length], ["증시", ""], ...outletTabs, [ARC_TAB, ""]].forEach(([name, n]) => {
       const b = document.createElement("button"); b.className = "tab"; b.type = "button"; b.setAttribute("aria-pressed", String(state.filter === name));
       b.append(name); if (n !== "") { const sm = document.createElement("small"); sm.textContent = n; b.appendChild(sm); }
       b.onclick = () => { state.filter = name; render(); };
@@ -591,6 +709,7 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
     renderMarket();
     // the market panel sits at the top of 전체 and alone under the 증시 tab
     if (hasMarket && (state.filter === "전체" || state.filter === "증시")) list.prepend(mbox()); else mbox().hidden = true;
+    if (state.filter === "전체" || state.filter === "증시") { list.prepend(fxbox()); fxPaint(); fxRefresh(false); }
     if (state.filter === ARC_TAB) showArchiveIn(list);
     paint();
   }
@@ -919,7 +1038,12 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
     const t = raw.trim().replace(/[.?!。]+$/,""); if (!t) return;
     const short = t.length <= 14;
     // "뉴스 알려줘", "브리핑 시작", "MBC 뉴스 틀어줘" … → get the newest 3-hour edition, then read
-    if (/(주식|증시|증권|코스피|코스닥|환율|나스닥|다우|주가|시장 ?상황|장 ?마감)/.test(t) && !/(진짜|사실|맞아)/.test(t)) {
+    if (/(환율|달러|엔화|뉴질랜드|외환)/.test(t) && !/(진짜|사실|맞아|주식|코스피)/.test(t)) {
+      state.filter = "증시"; if (state.current) render();
+      await fxRefresh(true);
+      return reply(t, fxSpeech());
+    }
+    if (/(주식|증시|증권|코스피|코스닥|나스닥|다우|주가|시장 ?상황|장 ?마감)/.test(t) && !/(진짜|사실|맞아)/.test(t)) {
       state.pickedOld = false; await ensureLatest();
       if (!(state.current && state.current.markets)) return reply(t, "이번 브리핑에는 증시 정보가 아직 없어요. 다음 업데이트 때 들어가요.");
       state.filter = "증시"; render();
