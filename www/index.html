@@ -10,7 +10,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="apple-touch-icon" href="icon-180.png">
 <link rel="manifest" href="manifest.webmanifest">
-<meta name="app-version" content="23">
+<meta name="app-version" content="24">
 <title>아침 브리핑</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -211,6 +211,26 @@
   .fx-c .d.up{color:#e5484d} .fx-c .d.down{color:#3b6fe0} .fx-c .d.flat{color:var(--muted)}
   .fx-foot{margin-top:9px;font-size:11.5px;line-height:1.5;color:var(--muted)}
   .fx-foot a{color:inherit}
+  /* stock quotes */
+  .stk{background:var(--sheet);border-radius:24px;padding:14px 14px 10px;box-shadow:0 0 0 1px var(--hair);margin-top:12px}
+  .stk .fx-head{padding:0 2px}
+  .stk-search{display:flex;gap:8px;margin:2px 0 10px}
+  .stk-search input{flex:1;min-width:0;height:42px;border:0;border-radius:13px;padding:0 13px;background:var(--bg);color:var(--ink);font:inherit;font-size:15px}
+  .stk-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 0 8px}
+  .stk-chips button{flex:none;height:32px;padding:0 12px;border:0;border-radius:999px;background:var(--bg);color:var(--muted);font-size:13px;font-weight:600}
+  .stk-chips button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+  .stk-row{display:flex;align-items:center;gap:10px;padding:11px 2px;border-top:1px solid var(--hair)}
+  .stk-row:first-child{border-top:0}
+  .stk-row .nm{flex:1;min-width:0;border:0;background:none;padding:0;text-align:left;color:var(--ink);font:inherit}
+  .stk-row .nm b{display:block;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stk-row .nm small{font-size:11.5px;color:var(--muted)}
+  .stk-row .px{text-align:right;flex:none}
+  .stk-row .px b{display:block;font-size:15px;font-weight:700;letter-spacing:-.01em}
+  .stk-row .px small{font-size:12px;font-weight:600}
+  .stk-row .px small.up{color:#e5484d} .stk-row .px small.down{color:#3b6fe0} .stk-row .px small.flat{color:var(--muted)}
+  .stk-row .star{flex:none;width:34px;height:34px;border:0;border-radius:50%;background:none;color:var(--muted);font-size:18px;line-height:1}
+  .stk-row .star.on{color:#f5a524}
+  .stk-empty{padding:16px 4px;font-size:13.5px;line-height:1.6;color:var(--muted)}
   .market{margin-top:14px;background:var(--sheet);border-radius:24px;padding:16px 16px 12px;box-shadow:0 0 0 1px var(--hair)}
   .market.now{box-shadow:0 0 0 2px var(--onair)}
   .m-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:0 4px 10px}
@@ -331,6 +351,7 @@
 
   <section class="fx" id="fx" hidden aria-label="실시간 환율"></section>
   <section class="market" id="market" hidden aria-label="증시"></section>
+  <section class="stk" id="stk" hidden aria-label="종목 시세"></section>
 
   <div class="tabs-wrap"><nav class="tabs" id="tabs" aria-label="언론사"></nav></div>
 
@@ -352,6 +373,7 @@
       <dt>주식 알려줘</dt><dd>코스피·코스닥·환율·미국 증시와 크게 움직인 종목을 읽어요 (“코스피 어때?”, “환율 알려줘”도 돼요)</dd>
       <dt>스포츠 알려줘</dt><dd>스포츠 소식만 읽어요 (“야구 소식”, “축구 뉴스”도 돼요)</dd>
       <dt>기사 모음</dt><dd>지금까지 나온 기사를 모두 모아 둬요. 맨 끝 ‘지난 기사’ 탭에서 검색하고 골라 들을 수 있어요</dd>
+      <dt>삼성전자 얼마야?</dt><dd>종목 현재가를 알려 줘요. “내 종목 알려줘”는 관심 종목을 읽어요</dd>
       <dt>환율 알려줘</dt><dd>지금 달러·엔화·뉴질랜드 달러 환율을 읽어요</dd>
       <dt>경제 뉴스</dt><dd>언론사와 상관없이 그 분야만 모아 읽어요</dd>
       <dt>확인된 뉴스만</dt><dd>여러 매체가 함께 보도한 소식만 읽어요</dd>
@@ -587,7 +609,200 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
     return `${fx.time.replace(" 기준", "")} ${fx.source} 기준으로, ` + fx.rows.map(say).join(", ") + "입니다." + (fx.live ? "" : " 하루 한 번 갱신되는 값이라 실제 시세와 다를 수 있어요.");
   }
   // refresh every minute while the screen shows it
-  setInterval(() => { if (!document.hidden && fxEl && fxEl.isConnected) fxRefresh(false); }, 60000);
+  setInterval(() => { if (!document.hidden && fxEl && fxEl.isConnected) fxRefresh(false); if (!document.hidden && stEl && stEl.isConnected) stRefresh(false); }, 60000);
+
+  /* ---------- stock quotes: watchlist + lists, fetched by the app (네이버 증권, fallback Yahoo) ---------- */
+  var stEl = null;
+  const stbox = () => stEl || (stEl = $("stk"));
+  const DEFAULT_WATCH = [
+    {code:"005930",name:"삼성전자",n:"KR",m:"KOSPI"},{code:"000660",name:"SK하이닉스",n:"KR",m:"KOSPI"},{code:"373220",name:"LG에너지솔루션",n:"KR",m:"KOSPI"},
+    {code:"207940",name:"삼성바이오로직스",n:"KR",m:"KOSPI"},{code:"005380",name:"현대차",n:"KR",m:"KOSPI"},{code:"000270",name:"기아",n:"KR",m:"KOSPI"},
+    {code:"068270",name:"셀트리온",n:"KR",m:"KOSPI"},{code:"035420",name:"NAVER",n:"KR",m:"KOSPI"},{code:"035720",name:"카카오",n:"KR",m:"KOSPI"},
+    {code:"105560",name:"KB금융",n:"KR",m:"KOSPI"},{code:"012450",name:"한화에어로스페이스",n:"KR",m:"KOSPI"},{code:"329180",name:"HD현대중공업",n:"KR",m:"KOSPI"},
+    {code:"247540",name:"에코프로비엠",n:"KR",m:"KOSDAQ"},{code:"196170",name:"알테오젠",n:"KR",m:"KOSDAQ"},
+    {code:"NVDA.O",name:"엔비디아",n:"US",y:"NVDA"},{code:"AAPL.O",name:"애플",n:"US",y:"AAPL"},{code:"MSFT.O",name:"마이크로소프트",n:"US",y:"MSFT"},
+    {code:"TSLA.O",name:"테슬라",n:"US",y:"TSLA"},{code:"GOOGL.O",name:"알파벳(구글)",n:"US",y:"GOOGL"},{code:"AMZN.O",name:"아마존",n:"US",y:"AMZN"},
+    {code:"META.O",name:"메타",n:"US",y:"META"},{code:"AVGO.O",name:"브로드컴",n:"US",y:"AVGO"},{code:"TSM",name:"TSMC",n:"US",y:"TSM"}];
+  const US_MAIN = ["NVDA.O","AAPL.O","MSFT.O","GOOGL.O","AMZN.O","META.O","TSLA.O","AVGO.O","TSM","NFLX.O","AMD.O","PLTR.O","INTC.O","MU.O","ORCL.K","JPM","V","WMT","COST.O","KO"]
+    .map(c => ({code: c, name: c.replace(/\..*$/, ""), n: "US", y: c.replace(/\..*$/, "")}));
+  const st = { tab: "관심 종목", q: "", rows: {}, lists: {}, at: {}, busy: {}, err: "", src: "", search: null };
+  const ST_TABS = ["관심 종목", "시총 상위", "오른 종목", "내린 종목", "코스닥 상위", "미국"];
+  function watch(){ try { const w = JSON.parse(store.get("brief.watch", "null")); if (Array.isArray(w)) return w; } catch(e){} return DEFAULT_WATCH.slice(); }
+  function setWatch(w){ store.set("brief.watch", JSON.stringify(w)); }
+  const numv = (v) => { if (v == null) return NaN; if (typeof v === "number") return v; const n = Number(String(v).replace(/[,%+\s]/g, "")); return n; };
+  function fromNaver(x, base){
+    const name = (base && base.name && !/^[A-Z.]+$/.test(base.name)) ? base.name : (x.stockName || x.itemName || x.stockNameEng || x.name || (base && base.name));
+    const code = x.itemCode || x.reutersCode || x.symbolCode || (base && base.code);
+    const price = numv(x.closePrice != null ? x.closePrice : x.nowPrice != null ? x.nowPrice : x.currentPrice);
+    let chg = numv(x.compareToPreviousClosePrice != null ? x.compareToPreviousClosePrice : x.compareToPreviousPrice && x.compareToPreviousPrice.value);
+    const rate = numv(x.fluctuationsRatio != null ? x.fluctuationsRatio : x.fluctuationRate);
+    const dn = String((x.compareToPreviousPrice && (x.compareToPreviousPrice.name || x.compareToPreviousPrice.code)) || "");
+    let dir = /RIS|UPPER|^1$|^2$/.test(dn) ? "up" : /FALL|LOWER|^4$|^5$/.test(dn) ? "down" : (rate > 0 || chg > 0) ? "up" : (rate < 0 || chg < 0) ? "down" : "flat";
+    if (!isFinite(price)) return null;
+    return {code, name, price, chg: Math.abs(chg || 0), rate: Math.abs(rate || 0), dir, cur: (base && base.n === "US") || x.currencyType && x.currencyType.code === "USD" ? "USD" : "KRW",
+            open: x.marketStatus ? x.marketStatus === "OPEN" : null, time: x.localTradedAt || x.tradedAt || "", n: base ? base.n : (x.nationType === "USA" ? "US" : "KR"), m: base && base.m, y: base && base.y};
+  }
+  async function quotesNaver(list){
+    const kr = list.filter(x => x.n === "KR").map(x => x.code), us = list.filter(x => x.n === "US").map(x => x.code), out = {};
+    const pull = async (kind, codes) => {
+      for (let i = 0; i < codes.length; i += 20) {
+        const j = await httpJSON(`https://polling.finance.naver.com/api/realtime/${kind}/stock/${codes.slice(i, i + 20).join(",")}`);
+        (j.datas || j.data || []).forEach(x => { const base = list.find(b => b.code === (x.itemCode || x.reutersCode || x.symbolCode)); const r = fromNaver(x, base); if (r) out[r.code] = r; });
+      }
+    };
+    if (kr.length) await pull("domestic", kr);
+    if (us.length) await pull("worldstock", us);
+    if (!Object.keys(out).length) throw new Error("empty");
+    return out;
+  }
+  async function quotesYahoo(list){
+    const out = {};
+    await Promise.all(list.map(async b => {
+      const sym = b.n === "KR" ? b.code + (b.m === "KOSDAQ" ? ".KQ" : ".KS") : (b.y || b.code.replace(/\..*$/, ""));
+      try {
+        const j = await httpJSON(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(sym)}?range=1d&interval=5m`);
+        const m = j.chart.result[0].meta, p = m.regularMarketPrice, prev = m.chartPreviousClose || m.previousClose;
+        out[b.code] = {code: b.code, name: b.name, price: p, chg: Math.abs(p - prev), rate: prev ? Math.abs((p - prev) / prev * 100) : 0, dir: p > prev ? "up" : p < prev ? "down" : "flat",
+                       cur: b.n === "US" ? "USD" : "KRW", time: m.regularMarketTime ? new Date(m.regularMarketTime * 1000).toISOString() : "", n: b.n, m: b.m, y: b.y};
+      } catch(e){}
+    }));
+    if (!Object.keys(out).length) throw new Error("empty");
+    return out;
+  }
+  async function quotes(list){
+    try { const r = await quotesNaver(list); st.src = "네이버 증권"; return r; }
+    catch(e) { const r = await quotesYahoo(list); st.src = "Yahoo Finance (국내 종목은 최대 20분 늦을 수 있어요)"; return r; }
+  }
+  async function rankList(tab){
+    const U = {"시총 상위": "https://m.stock.naver.com/api/stocks/marketValue/KOSPI?page=1&pageSize=50",
+               "오른 종목": "https://m.stock.naver.com/api/stocks/up/KOSPI?page=1&pageSize=40",
+               "내린 종목": "https://m.stock.naver.com/api/stocks/down/KOSPI?page=1&pageSize=40",
+               "코스닥 상위": "https://m.stock.naver.com/api/stocks/marketValue/KOSDAQ?page=1&pageSize=50"}[tab];
+    const j = await httpJSON(U); const arr = j.stocks || j.datas || j.result || [];
+    const m = tab === "코스닥 상위" ? "KOSDAQ" : "KOSPI";
+    const rows = arr.map(x => fromNaver(x, {code: x.itemCode, name: x.stockName, n: "KR", m})).filter(Boolean);
+    if (!rows.length) throw new Error("empty");
+    st.src = "네이버 증권";
+    return rows;
+  }
+  function stRefresh(force){
+    const tab = st.tab;
+    if (st.busy[tab]) return st.busy[tab];
+    if (!force && st.at[tab] && Date.now() - st.at[tab] < 60000) return Promise.resolve();
+    st.busy[tab] = (async () => {
+      try {
+        if (tab === "관심 종목" || tab === "미국") {
+          const list = tab === "미국" ? US_MAIN : watch();
+          const q = await quotes(list); Object.assign(st.rows, q);
+          st.lists[tab] = list.map(b => q[b.code] || st.rows[b.code] || {...b, price: NaN});
+        } else st.lists[tab] = await rankList(tab);
+        st.at[tab] = Date.now(); st.err = "";
+      } catch(e) {
+        st.err = NATIVE ? "시세를 받지 못했어요. 인터넷 연결을 확인하고 새로 고침을 눌러 주세요."
+                        : "이 브라우저에서는 시세 사이트가 연결을 막아 종목 시세를 받지 못했어요. 안드로이드 앱이나 증권사 앱에서 확인해 주세요.";
+      }
+      st.busy[tab] = null; if (stEl && stEl.isConnected) stPaint();
+    })();
+    return st.busy[tab];
+  }
+  const fmtPx = (r) => r.cur === "USD" ? "$" + r.price.toLocaleString("en-US", {minimumFractionDigits: 2, maximumFractionDigits: 2}) : Math.round(r.price).toLocaleString("ko-KR") + "원";
+  const fmtChg = (r) => (r.dir === "up" ? "▲ " : r.dir === "down" ? "▼ " : "– ") + (r.cur === "USD" ? r.chg.toFixed(2) : Math.round(r.chg).toLocaleString("ko-KR")) + ` (${r.rate.toFixed(2)}%)`;
+  const inWatch = (code) => watch().some(w => w.code === code);
+  function toggleWatch(r){
+    let w = watch();
+    if (w.some(x => x.code === r.code)) w = w.filter(x => x.code !== r.code);
+    else w.unshift({code: r.code, name: r.name, n: r.n || "KR", m: r.m, y: r.y});
+    setWatch(w); st.at["관심 종목"] = 0; stPaint(); if (st.tab === "관심 종목") stRefresh(true);
+  }
+  function stRow(r){
+    const row = document.createElement("div"); row.className = "stk-row";
+    const nm = document.createElement("button"); nm.type = "button"; nm.className = "nm";
+    const b = document.createElement("b"); b.textContent = r.name || r.code;
+    const sm = document.createElement("small"); sm.textContent = r.n === "US" ? "미국 · " + String(r.code).replace(/\..*$/, "") : (r.m === "KOSDAQ" ? "코스닥 · " : "코스피 · ") + r.code;
+    nm.append(b, sm); nm.onclick = () => { if (isFinite(r.price)) reply(r.name, stockLine(r)); };
+    const px = document.createElement("div"); px.className = "px";
+    const pb = document.createElement("b"); const ps = document.createElement("small");
+    if (isFinite(r.price)) { pb.textContent = fmtPx(r); ps.className = r.dir; ps.textContent = fmtChg(r); } else { pb.textContent = "–"; ps.textContent = "시세 없음"; ps.className = "flat"; }
+    px.append(pb, ps);
+    const star = document.createElement("button"); star.type = "button"; const on = inWatch(r.code);
+    star.className = "star" + (on ? " on" : ""); star.textContent = on ? "★" : "☆"; star.setAttribute("aria-label", on ? "관심 종목에서 빼기" : "관심 종목에 넣기");
+    star.onclick = () => toggleWatch(r);
+    row.append(nm, px, star); return row;
+  }
+  async function stSearch(q){
+    st.q = q; if (!q) { st.search = null; stPaint(); return; }
+    let items = [];
+    try {
+      const j = await httpJSON(`https://ac.stock.naver.com/ac?q=${encodeURIComponent(q)}&target=stock,etf`);
+      items = (j.items || []).slice(0, 15).map(x => ({code: x.nationCode === "KOR" ? x.code : (x.reutersCode || x.code), name: x.name, n: x.nationCode === "KOR" ? "KR" : "US",
+                                                     m: /KOSDAQ|코스닥/i.test(x.typeCode + x.typeName) ? "KOSDAQ" : "KOSPI", y: x.code}));
+    } catch(e) {}
+    const local = [...DEFAULT_WATCH, ...US_MAIN, ...Object.values(st.lists).flat()].filter(x => x && x.name && (x.name.includes(q) || String(x.code).toUpperCase().startsWith(q.toUpperCase())));
+    local.forEach(x => { if (!items.some(i => i.code === x.code)) items.push(x); });
+    if (st.q !== q) return;
+    st.search = items.slice(0, 20);
+    if (items.length) { try { const qq = await quotes(st.search); st.search = st.search.map(b => qq[b.code] || b); } catch(e){} }
+    if (st.q === q) stPaint();
+  }
+  function stPaint(){
+    const box = stbox(); box.hidden = false;
+    const keepFocus = document.activeElement && document.activeElement.id === "stkQ";
+    box.innerHTML = "";
+    const head = document.createElement("div"); head.className = "fx-head";
+    const h = document.createElement("h2"); h.textContent = "종목 시세";
+    const rb = document.createElement("button"); rb.type = "button"; rb.textContent = st.busy[st.tab] ? "받는 중…" : "새로 고침"; rb.onclick = () => { rb.textContent = "받는 중…"; stRefresh(true); };
+    head.append(h, rb); box.appendChild(head);
+    const f = document.createElement("form"); f.className = "stk-search";
+    const inp = document.createElement("input"); inp.id = "stkQ"; inp.type = "search"; inp.placeholder = "종목 이름이나 코드 검색 (예: 현대차, AAPL)"; inp.value = st.q; inp.setAttribute("aria-label", "종목 검색");
+    let tmr = null; inp.oninput = () => { clearTimeout(tmr); const v = inp.value.trim(); tmr = setTimeout(() => stSearch(v), 350); };
+    f.onsubmit = (e) => { e.preventDefault(); stSearch(inp.value.trim()); inp.blur(); };
+    f.appendChild(inp); box.appendChild(f);
+    const list = document.createElement("div");
+    if (st.search) {
+      if (!st.search.length) { const e = document.createElement("div"); e.className = "stk-empty"; e.textContent = "찾는 종목이 없어요. 다른 이름이나 종목 코드로 찾아보세요."; list.appendChild(e); }
+      st.search.forEach(r => list.appendChild(stRow(r)));
+    } else {
+      const chips = document.createElement("div"); chips.className = "stk-chips";
+      ST_TABS.forEach(t => { const b = document.createElement("button"); b.type = "button"; b.textContent = t; b.setAttribute("aria-pressed", String(st.tab === t)); b.onclick = () => { st.tab = t; stPaint(); stRefresh(false); }; chips.appendChild(b); });
+      box.appendChild(chips);
+      const rows = st.lists[st.tab];
+      if (rows && rows.length) rows.forEach(r => list.appendChild(stRow(r)));
+      else { const e = document.createElement("div"); e.className = "stk-empty"; e.textContent = st.err || "시세를 받고 있어요"; list.appendChild(e); }
+    }
+    box.appendChild(list);
+    const ft = document.createElement("div"); ft.className = "fx-foot";
+    const t = st.at[st.tab] ? hhmm(new Date(st.at[st.tab])) + "에 받음" : "";
+    ft.textContent = [st.src, t, "★로 관심 종목을 넣고 뺄 수 있어요", "투자 판단은 증권사 앱 시세로 확인해 주세요"].filter(Boolean).join(" · ");
+    box.appendChild(ft);
+    if (keepFocus) { const i = box.querySelector("#stkQ"); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }
+  }
+  function josa(w, a, b){   // 은/는 by the last syllable
+    const c = String(w).trim().slice(-1), code = c.charCodeAt(0);
+    if (code >= 0xAC00 && code <= 0xD7A3) return (code - 0xAC00) % 28 ? a : b;
+    return /[013678LMNR]$/i.test(c) ? a : b;
+  }
+  function stockLine(r){
+    const p = r.cur === "USD" ? `${r.price.toFixed(2)}달러로` : `${Math.round(r.price).toLocaleString("ko-KR")}원으로`;
+    const mv = r.dir === "flat" ? "변동이 없어요" : `${r.rate.toFixed(2)}% ${r.dir === "up" ? "올랐어요" : "내렸어요"}`;
+    return `${r.name}${josa(r.name, "은", "는")} ${p}, 전날보다 ${mv}.`;
+  }
+  // voice: "삼성전자 얼마야", "엔비디아 주가", "내 종목 알려줘"
+  async function stockVoice(t){
+    if (/(내 ?종목|관심 ?종목)/.test(t)) {
+      st.tab = "관심 종목"; await stRefresh(true);
+      const rows = (st.lists["관심 종목"] || []).filter(r => isFinite(r.price));
+      if (!rows.length) return st.err || "관심 종목 시세를 받지 못했어요.";
+      return `${st.src} 기준 관심 종목입니다. ` + rows.slice(0, 12).map(stockLine).join(" ");
+    }
+    const name = t.replace(/\s*(주가|시세|얼마야|얼마|지금|현재가|어때|알려 ?줘|는|은|좀)\s*/g, " ").trim();
+    if (!name) return null;
+    const pool = [...watch(), ...DEFAULT_WATCH, ...US_MAIN, ...Object.values(st.lists).flat()];
+    let b = pool.find(x => x && x.name && (x.name === name || x.name.replace(/\s/g, "") === name.replace(/\s/g, "")));
+    if (!b) { await stSearch(name); b = st.search && st.search[0]; }
+    if (!b) return `${name} 종목을 찾지 못했어요.`;
+    try { const q = await quotes([b]); const r = q[b.code]; if (r) return `${st.src} 기준으로, ` + stockLine({...r, name: b.name || r.name}); } catch(e){}
+    return st.err || `${b.name} 시세를 받지 못했어요.`;
+  }
   const WD = ["일","월","화","수","목","금","토"];
   function fmtDate(s){ const [y,m,d] = s.split("-").map(Number); return `${m}월 ${d}일 ${WD[new Date(y,m-1,d).getDay()]}요일`; }
   function fmtTime(iso){ try { return new Date(iso).toLocaleTimeString("ko-KR",{hour:"numeric",minute:"2-digit"}); } catch(e){ return ""; } }
@@ -710,6 +925,7 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
     // the market panel sits at the top of 전체 and alone under the 증시 tab
     if (hasMarket && (state.filter === "전체" || state.filter === "증시")) list.prepend(mbox()); else mbox().hidden = true;
     if (state.filter === "전체" || state.filter === "증시") { list.prepend(fxbox()); fxPaint(); fxRefresh(false); }
+    if (state.filter === "증시") { list.appendChild(stbox()); stPaint(); stRefresh(false); }
     if (state.filter === ARC_TAB) showArchiveIn(list);
     paint();
   }
@@ -1038,6 +1254,10 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
     const t = raw.trim().replace(/[.?!。]+$/,""); if (!t) return;
     const short = t.length <= 14;
     // "뉴스 알려줘", "브리핑 시작", "MBC 뉴스 틀어줘" … → get the newest 3-hour edition, then read
+    if (/(내 ?종목|관심 ?종목)/.test(t) || (/(주가|시세|얼마야|얼마|현재가)/.test(t) && !/(환율|달러|엔화|뉴질랜드|코스피|코스닥|나스닥|다우|증시)/.test(t))) {
+      state.filter = "증시"; if (state.current) render();
+      const a = await stockVoice(t); if (a) return reply(t, a);
+    }
     if (/(환율|달러|엔화|뉴질랜드|외환)/.test(t) && !/(진짜|사실|맞아|주식|코스피)/.test(t)) {
       state.filter = "증시"; if (state.current) render();
       await fxRefresh(true);
