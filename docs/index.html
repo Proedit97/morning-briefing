@@ -39,6 +39,7 @@
   .qrbox p{margin:0;font-size:13.5px;line-height:1.6;color:var(--muted)}
   .qrbox b{color:var(--ink);font-weight:600}
   @media (hover:none){.qrbox{display:none}}
+  .dl.ios{background:var(--sheet);color:var(--ink);box-shadow:0 0 0 1px var(--hair);margin-top:2px}
   a:focus-visible,summary:focus-visible{outline:2px solid var(--onair);outline-offset:3px}
 </style>
 </head>
@@ -48,13 +49,17 @@
     <span class="air"><i class="lamp"></i>ON AIR · 3시간마다 업데이트</span>
     <div>
       <h1>아침 브리핑</h1>
-      <p class="lead">MBC·SBS·KBS·JTBC·YTN·MBN·연합뉴스 소식을 여러 매체와 교차 확인해서, 여성 아나운서 목소리로 읽어 줘요. “뉴스 알려줘” 한마디면 최신 브리핑부터 시작해요.</p>
+      <p class="lead">MBC·SBS·KBS·JTBC·YTN·MBN·연합뉴스와 스포츠·증시 소식을 여러 매체와 교차 확인해서, 여성 아나운서 목소리로 읽어 줘요. “뉴스 알려줘” 한마디면 최신 브리핑부터 시작해요.</p>
     </div>
     <a class="dl" href="https://github.com/Proedit97/morning-briefing/releases/latest/download/morning-briefing.apk">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
       안드로이드 앱 내려받기
     </a>
     <div class="ver" id="ver">최신 버전 · 안드로이드 7.0 이상</div>
+    <a class="dl ios" id="iosBtn" href="app/">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>
+      아이폰은 여기서 열기
+    </a>
   </section>
 
   <div class="links">
@@ -74,6 +79,14 @@
         <li>확인 묻기: “신세계 폭발물 진짜야?”</li>
       </ol>
     </details>
+    <details class="link" id="iosHow">
+      <summary>아이폰에서 앱처럼 쓰기 <span>홈 화면에 추가</span></summary>
+      <ol>
+        <li>사파리로 이 페이지를 열고 ‘아이폰은 여기서 열기’를 눌러요.</li>
+        <li>아래쪽 공유 버튼(네모에 위 화살표)을 누르고 ‘홈 화면에 추가’를 골라요.</li>
+        <li>홈 화면의 ‘아침 브리핑’ 아이콘으로 열면 돼요. 화면을 켜 둔 동안 읽어 주고, 말로 하고 싶으면 입력창에서 키보드의 마이크를 눌러요.</li>
+      </ol>
+    </details>
     <a class="link" href="https://github.com/Proedit97/morning-briefing/releases">지난 버전 <span>GitHub</span></a>
   </div>
 
@@ -83,6 +96,13 @@
   </div>
 </main>
 <script>
+  // iPhone/iPad: the web app comes first
+  if (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) {
+    const card = document.querySelector(".card"), ios = document.getElementById("iosBtn");
+    ios.classList.remove("ios"); card.querySelector('a.dl:not(#iosBtn)').classList.add("ios");
+    card.insertBefore(ios, card.querySelector('a.dl:not(#iosBtn)'));
+    document.getElementById("iosHow").open = true;
+  }
   fetch("https://api.github.com/repos/Proedit97/morning-briefing/releases/latest").then(r => r.json()).then(d => {
     const a = (d.assets || []).find(x => /\.apk$/.test(x.name));
     if (d.tag_name && a) document.getElementById("ver").textContent = `최신 버전 ${d.tag_name} · ${(a.size / 1048576).toFixed(1)}MB · 안드로이드 7.0 이상`;

@@ -1,0 +1,36 @@
+name: Update iPhone web app
+
+# The iPhone/web version (GitHub Pages: /app/) is the same page as the Android app's screen.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "www/index.html"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-web
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Copy app page to docs/app
+        run: cp www/index.html docs/app/index.html
+      - name: Commit if changed
+        run: |
+          git config user.name "briefing-web"
+          git config user.email "briefing-web@users.noreply.github.com"
+          git add docs/app/index.html
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "아이폰 웹 앱 갱신"
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            sleep 5
+          done
+          exit 1
