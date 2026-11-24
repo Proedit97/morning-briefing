@@ -1,0 +1,31 @@
+from playwright.sync_api import sync_playwright
+import json
+def route(r):
+    u=r.request.url
+    if "www/index.html" in u: r.fulfill(path="/tmp/sim/app.html", content_type="text/plain")
+    elif "index.json" in u: r.fulfill(body=json.dumps({"dates":["2026-11-24-09"]}))
+    elif "releases" in u: r.fulfill(body=json.dumps({"tag_name":"v1.0.6","assets":[]}))
+    else: r.fulfill(path="/tmp/shot/e09.json")
+with sync_playwright() as p:
+    b=p.chromium.launch(); pg=b.new_page(viewport={"width":390,"height":844})
+    errs=[]; pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.add_init_script(path="/tmp/sim/fakephone.js"); pg.add_init_script(path="/tmp/sim/native-bridge.js")
+    for pat in ["https://raw.githubusercontent.com/**","https://api.github.com/**"]: pg.route(pat, route)
+    pg.goto("file:///tmp/sim/app.html", wait_until="commit")
+    pg.wait_for_function("document.querySelectorAll('.story .s-title').length>0", timeout=8000); pg.wait_for_timeout(2500)
+    print("tabs:", pg.eval_on_selector_all(".tab", "e=>e.map(x=>x.textContent)"))
+    print("전체: market in list", pg.evaluate("!!document.querySelector('#list #market') && !document.getElementById('market').hidden"))
+    pg.click(".tab:has-text('증시')"); pg.wait_for_timeout(400)
+    print("증시: groups", pg.evaluate("document.querySelectorAll('#list .group').length"), "market shown", pg.evaluate("!document.getElementById('market').hidden"))
+    pg.evaluate("document.querySelector('.tabs-wrap').scrollIntoView()"); pg.wait_for_timeout(300)
+    pg.screenshot(path="/tmp/sim/tab_market.png")
+    pg.click(".tab:has-text('MBC')"); pg.wait_for_timeout(300)
+    print("MBC: market gone", pg.evaluate("!document.getElementById('market')"), "groups", pg.evaluate("document.querySelectorAll('#list .group').length"))
+    pg.fill("#askInput", "스포츠 알려줘"); pg.press("#askInput", "Enter"); pg.wait_for_timeout(800)
+    print("sports voice tab:", pg.eval_on_selector_all(".tab[aria-pressed=true]", "e=>e.map(x=>x.textContent)"), "groups", pg.evaluate("document.querySelectorAll('#list .group').length"))
+    pg.evaluate("localStorage.setItem('brief.sports','0')")
+    pg.click("#stopBtn"); pg.evaluate("window.__calls=[]"); pg.click(".tab:has-text('전체')"); pg.click("#playBtn"); pg.wait_for_timeout(1500)
+    print("full w/o sports speaks:", pg.evaluate("window.__calls.filter(c=>c.endsWith('speak')).length"))
+    pg.fill("#askInput", "주식 알려줘"); pg.press("#askInput", "Enter"); pg.wait_for_timeout(800)
+    print("voice: filter tab pressed", pg.eval_on_selector_all(".tab[aria-pressed=true]", "e=>e.map(x=>x.textContent)"), "speaks", pg.evaluate("window.__calls.filter(c=>c.endsWith('speak')).length"))
+    print("errors:", errs); b.close()
