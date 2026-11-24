@@ -7,7 +7,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="아침 브리핑">
-<meta name="app-version" content="19">
+<meta name="app-version" content="20">
 <title>아침 브리핑</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -62,7 +62,7 @@
   /* archive sheet */
   .arc-search{display:flex;gap:8px;margin:2px 0 10px}
   .arc-search input{flex:1;min-width:0;height:44px;border:0;border-radius:14px;padding:0 14px;background:var(--sheet);color:var(--ink);font:inherit;font-size:15px;box-shadow:0 0 0 1px var(--hair)}
-  .arc-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -16px 10px;padding:0 16px}
+  .arc-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 0 10px}
   .arc-chips button{flex:none;height:34px;padding:0 13px;border:0;border-radius:999px;background:var(--sheet);color:var(--muted);font-size:13.5px;font-weight:600;box-shadow:0 0 0 1px var(--hair)}
   .arc-chips button[aria-pressed="true"]{background:var(--ink);color:var(--bg);box-shadow:none}
   .arc-info{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 4px 8px;font-size:13px;color:var(--muted)}
@@ -281,7 +281,6 @@
     </div>
     <div class="tools">
     <button class="refresh" id="refreshBtn" type="button" aria-label="새로 고침"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
-    <button class="refresh" id="arcBtn" type="button" aria-label="기사 모음"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6a2 2 0 0 1 2 2v14a2 2 0 0 0-2-2H4z"/><path d="M20 4h-6a2 2 0 0 0-2 2v14a2 2 0 0 1 2-2h6z"/></svg></button>
     <button class="refresh" id="setBtn" type="button" aria-label="설정"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
     <div class="day" id="dayWrap" hidden>
       <label class="sr" for="daySel">날짜 선택</label>
@@ -333,7 +332,7 @@
       <dt>MBC 뉴스</dt><dd>그 언론사 소식만 읽어요</dd>
       <dt>주식 알려줘</dt><dd>코스피·코스닥·환율·미국 증시와 크게 움직인 종목을 읽어요 (“코스피 어때?”, “환율 알려줘”도 돼요)</dd>
       <dt>스포츠 알려줘</dt><dd>스포츠 소식만 읽어요 (“야구 소식”, “축구 뉴스”도 돼요)</dd>
-      <dt>기사 모음</dt><dd>지금까지 나온 기사를 모두 모아 둬요. 위쪽 📖 버튼에서 검색하고 골라 들을 수 있어요</dd>
+      <dt>기사 모음</dt><dd>지금까지 나온 기사를 모두 모아 둬요. 맨 끝 ‘지난 기사’ 탭에서 검색하고 골라 들을 수 있어요</dd>
       <dt>경제 뉴스</dt><dd>언론사와 상관없이 그 분야만 모아 읽어요</dd>
       <dt>확인된 뉴스만</dt><dd>여러 매체가 함께 보도한 소식만 읽어요</dd>
       <dt>헤드라인만</dt><dd>제목만 빠르게 읽어요</dd>
@@ -347,15 +346,12 @@
   </details>
 </div>
 
-<div class="set-ov" id="arcOv" role="dialog" aria-modal="true" aria-labelledby="arcTitle">
-  <div class="set" style="height:92vh">
-    <div class="set-top"><h2 id="arcTitle">기사 모음</h2><button type="button" id="arcClose">닫기</button></div>
-    <form class="arc-search" id="arcForm"><input id="arcQ" type="search" placeholder="검색어 (예: 이강인, 코스피, 지하철)" enterkeyhint="search" autocomplete="off"></form>
-    <div class="arc-chips" id="arcChips"></div>
-    <div class="arc-info"><span id="arcCount">불러오는 중</span><button type="button" id="arcPlay">모두 듣기</button></div>
-    <div class="arc-list" id="arcList"></div>
-  </div>
-</div>
+<section class="arc" id="arcPanel" hidden aria-label="지난 기사">
+  <form class="arc-search" id="arcForm"><input id="arcQ" type="search" placeholder="검색어 (예: 이강인, 코스피, 지하철)" enterkeyhint="search" autocomplete="off" aria-label="지난 기사 검색"></form>
+  <div class="arc-chips" id="arcChips"></div>
+  <div class="arc-info"><span id="arcCount">불러오는 중</span><button type="button" id="arcPlay">모두 듣기</button></div>
+  <div class="arc-list" id="arcList"></div>
+</section>
 
 <div class="set-ov" id="setOv" role="dialog" aria-modal="true" aria-labelledby="setTitle">
   <div class="set">
@@ -431,6 +427,7 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
   } catch(e){}
   const $ = (id) => document.getElementById(id);
   const RATES = [0.9, 1, 1.15, 1.3];
+  const ARC_TAB = "지난 기사";
   const VLABEL = {confirmed:"교차 확인", partial:"일부 확인", single:"단일 보도"};
   const ICON_PLAY = '<path d="M8 5v14l11-7z"/>', ICON_PAUSE = '<path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/>';
   const store = { get(k, d){ try { const v = localStorage.getItem(k); return v === null ? d : v; } catch(e){ return d; } }, set(k, v){ try { localStorage.setItem(k, v); } catch(e){} } };
@@ -541,14 +538,14 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
     const tabs = $("tabs"); tabs.innerHTML = "";
     const hasMarket = !!(d.markets && d.markets.summary);
     if (state.filter === "증시" && !hasMarket) state.filter = "전체";
-    [["전체", all.length], ...(hasMarket ? [["증시", ""]] : []), ...(d.sections || []).map(s => [s.category, (s.items||[]).length])].forEach(([name, n]) => {
+    [["전체", all.length], ...(hasMarket ? [["증시", ""]] : []), ...(d.sections || []).map(s => [s.category, (s.items||[]).length]), [ARC_TAB, ""]].forEach(([name, n]) => {
       const b = document.createElement("button"); b.className = "tab"; b.type = "button"; b.setAttribute("aria-pressed", String(state.filter === name));
       b.append(name); if (n !== "") { const sm = document.createElement("small"); sm.textContent = n; b.appendChild(sm); }
       b.onclick = () => { state.filter = name; render(); };
       tabs.appendChild(b);
     });
     (d.sections || []).forEach(s => {
-      if (state.filter === "증시" || (state.filter !== "전체" && state.filter !== s.category)) return;
+      if (state.filter === "증시" || state.filter === ARC_TAB || (state.filter !== "전체" && state.filter !== s.category)) return;
       const g = document.createElement("section"); g.className = "group";
       const gh = document.createElement("div"); gh.className = "ghead";
       const mk = document.createElement("span"); mk.className = "mark"; mk.textContent = markFor(s.category); mk.setAttribute("aria-hidden","true");
@@ -562,6 +559,7 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
     renderMarket();
     // the market panel sits at the top of 전체 and alone under the 증시 tab
     if (hasMarket && (state.filter === "전체" || state.filter === "증시")) list.prepend(mbox()); else mbox().hidden = true;
+    if (state.filter === ARC_TAB) showArchiveIn(list);
     paint();
   }
   function renderMarket(){
@@ -1138,6 +1136,9 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
   $("sCheck").onclick = manualCheck;
 
   /* ---------- 기사 모음: every article ever briefed, kept by month on GitHub (data/archive/) ---------- */
+  var arcPanel = null;
+  const arcEl0 = () => arcPanel || (arcPanel = $("arcPanel"));
+  const ap = (id) => arcEl0().querySelector("#" + id);
   const arc = { months: [], loaded: 0, articles: [], chip: "전체", q: "", total: 0, busy: false, shown: [] };
   const ARC_CHIPS = ["전체", "스포츠", "증시", "경제", "정치", "사회", "국제", "IT"];
   function arcFromDays(){   // fallback before the archive exists: what this phone has loaded
@@ -1159,7 +1160,7 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
         const m = await getJSON("archive/" + arc.months[arc.loaded] + ".json");
         arc.articles = arc.articles.concat(m.articles || []); arc.loaded++;
       }
-    } catch(e) { $("arcCount").textContent = "기사 모음을 받지 못했어요. 인터넷 연결을 확인해 주세요."; }
+    } catch(e) { ap("arcCount").textContent = "기사 모음을 받지 못했어요. 인터넷 연결을 확인해 주세요."; }
     finally { arc.busy = false; arcRender(); }
   }
   function arcMatch(x){
@@ -1193,13 +1194,13 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
     return st;
   }
   function arcRender(){
-    const chips = $("arcChips"); chips.innerHTML = "";
+    const chips = ap("arcChips"); chips.innerHTML = "";
     ARC_CHIPS.forEach(c => { const b = document.createElement("button"); b.type = "button"; b.textContent = c; b.setAttribute("aria-pressed", String(arc.chip === c)); b.onclick = () => { arc.chip = c; arcRender(); }; chips.appendChild(b); });
-    const list = $("arcList"); list.innerHTML = "";
+    const list = ap("arcList"); list.innerHTML = "";
     const hits = arc.articles.filter(arcMatch); arc.shown = hits;
     const kept = arc.total || arc.articles.length;
-    $("arcCount").textContent = (arc.q || arc.chip !== "전체") ? `${hits.length}건 찾았어요` : `모아 둔 기사 ${kept}건`;
-    $("arcPlay").hidden = !hits.length;
+    ap("arcCount").textContent = (arc.q || arc.chip !== "전체") ? `${hits.length}건 찾았어요` : `모아 둔 기사 ${kept}건`;
+    ap("arcPlay").hidden = !hits.length;
     if (!hits.length) { const e = document.createElement("div"); e.className = "arc-empty"; e.textContent = arc.busy ? "불러오는 중이에요" : (arc.q ? "찾는 기사가 없어요. 다른 낱말로 찾아보세요." : "아직 모아 둔 기사가 없어요."); list.appendChild(e); }
     let day = "", g = null;
     hits.slice(0, 300).forEach(it => {
@@ -1219,13 +1220,14 @@ var capacitorExports=function(e){"use strict";var t;e.ExceptionCode=void 0,(t=e.
     setStatus(`<b>${esc(label || "기사 모음")}</b> 읽는 중이에요`);
     runQueue(true);
   }
-  function openArchive(){ $("arcOv").classList.add("show"); arcRender(); if (!arc.articles.length || arc.loaded === 0) arcLoadMore(); }
-  $("arcBtn").onclick = openArchive;
-  $("arcClose").onclick = () => $("arcOv").classList.remove("show");
-  $("arcOv").addEventListener("click", (e) => { if (e.target === $("arcOv")) $("arcOv").classList.remove("show"); });
-  $("arcForm").onsubmit = (e) => { e.preventDefault(); $("arcQ").blur(); };
-  $("arcQ").oninput = (e) => { arc.q = e.target.value.trim(); arcRender(); };
-  $("arcPlay").onclick = () => playList(arc.shown, arc.q ? `“${arc.q}” 기사` : arc.chip === "전체" ? "기사 모음" : arc.chip + " 기사");
+  function openArchive(){ state.filter = ARC_TAB; render(); try { document.querySelector(".tabs-wrap").scrollIntoView({behavior: "smooth"}); } catch(e){} }
+  function showArchiveIn(list){
+    const panel = arcEl0(); panel.hidden = false; list.appendChild(panel);
+    arcRender(); if (!arc.articles.length || arc.loaded === 0) arcLoadMore();
+  }
+  ap("arcForm").onsubmit = (e) => { e.preventDefault(); ap("arcQ").blur(); };
+  ap("arcQ").oninput = (e) => { arc.q = e.target.value.trim(); arcRender(); };
+  ap("arcPlay").onclick = () => playList(arc.shown, arc.q ? `“${arc.q}” 기사` : arc.chip === "전체" ? "기사 모음" : arc.chip + " 기사");
   init();
 })();
 </script>
